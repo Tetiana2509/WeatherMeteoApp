@@ -76,7 +76,6 @@ export default function App() {
     setLoading(false);
   };
 
-  // Add this function to update weather for the current query
   const handleUpdate = async () => {
     if (!query) return;
     await handleSearch();
@@ -121,7 +120,6 @@ export default function App() {
         <Text style={styles.buttonText}>🔍 Search</Text>
       </TouchableOpacity>
 
-      {/* Add the UPDATE button here */}
       <TouchableOpacity style={styles.updateButton} onPress={handleUpdate}>
         <Text style={styles.buttonText}>🔄 Update</Text>
       </TouchableOpacity>

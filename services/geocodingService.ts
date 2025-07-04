@@ -4,7 +4,6 @@ export const getCoordinatesByQuery = async (
   try {
     const trimmedQuery = query.trim();
 
-    // 🔁 Попытка №1 — обычный текстовый поиск
     let params = new URLSearchParams({
       format: 'json',
       limit: '1',
@@ -21,13 +20,12 @@ export const getCoordinatesByQuery = async (
       return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
     }
 
-    // 🔁 Попытка №2 — если введён только индекс, попробовать как postalcode + country
     const match = trimmedQuery.match(/^(\d{4,6}),?\s*(\w+)?$/);
     if (match) {
       const postalcode = match[1];
-      const country = match[2] || ''; // либо указана, либо нет
+      const country = match[2] || ''; 
       if (!country) {
-        throw new Error('Додайте країну, напр. "12557, Germany"');
+        throw new Error('Please add a country, e.g. "12557, Germany"');
       }
 
       params = new URLSearchParams({
@@ -48,7 +46,7 @@ export const getCoordinatesByQuery = async (
       }
     }
 
-    throw new Error('Місто або індекс не знайдено');
+    throw new Error('City or postal code not found');
   } catch (error: any) {
     console.error('Geo error:', error);
     throw error;
