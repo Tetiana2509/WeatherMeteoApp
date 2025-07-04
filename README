@@ -1,0 +1,45 @@
+# 🌤️ Open-Meteo Weather API Parameters
+
+This application uses the [Open-Meteo API](https://open-meteo.com/)
+
+
+---
+
+## ⏰ Hourly Parameters
+
+| Parameter | Description |
+|----------|-------------|
+| `temperature_2m` | Air temperature at 2 meters (°C) |
+| `apparent_temperature` | Feels-like temperature (°C) |
+| `relative_humidity_2m` | Relative humidity at 2 meters (%) |
+| `dew_point_2m` | Dew point temperature (°C) |
+| `precipitation` | Precipitation (mm) |
+| `rain` | Rain (mm) |
+| `showers` | Showers (mm) |
+| `snowfall` | Snowfall (cm) |
+| `weathercode` | Weather condition code (0 = clear, 1 = partly cloudy, etc.) |
+| `cloudcover` | Cloud cover (%) |
+| `windspeed_10m` | Wind speed at 10 meters (km/h) |
+| `windgusts_10m` | Wind gusts (km/h) |
+| `winddirection_10m` | Wind direction (degrees) |
+| `shortwave_radiation` | Solar radiation (W/m²) |
+| `et0_fao_evapotranspiration` | Evapotranspiration (mm) |
+| `uv_index` | UV index |
+| `is_day` | 1 = daytime, 0 = nighttime |
+| `sunshine_duration` | Sunshine duration (minutes) |
+
+---
+
+## 📅 Daily Parameters
+
+| Parameter | Description |
+|----------|-------------|
+| `temperature_2m_max` / `min` | Max and min temperature (°C) |
+| `apparent_temperature_max` / `min` | Max and min feels-like temperature (°C) |
+| `precipitation_sum` | Total precipitation (mm) |
+| `sunrise` / `sunset` | Sunrise and sunset time |
+| `uv_index_max` | Maximum UV index |
+| `windspeed_10m_max` | Max wind speed during the day (km/h) |
+| `weathercode` | Daily weather condition code |
+
+
