@@ -13,6 +13,7 @@ import {
 import * as Location from 'expo-location';
 import { getHourlyWeather, HourlyWeather } from './services/meteoService';
 import { getCoordinatesByQuery } from './services/geocodingService';
+import WeatherChart from './WeatherChart';
 
 export default function App() {
   const [weatherData, setWeatherData] = useState<HourlyWeather | null>(null);
@@ -128,6 +129,7 @@ export default function App() {
         <Text style={styles.buttonText}>📍 My location</Text>
       </TouchableOpacity>
 
+
       {loading ? (
         <ActivityIndicator size="large" style={{ marginTop: 20 }} />
       ) : weatherData ? (
@@ -143,6 +145,14 @@ export default function App() {
             data={weatherData.time}
             renderItem={renderItem}
             keyExtractor={(item, index) => item + index}
+            ListHeaderComponent={
+              <View style={{ marginBottom: 20, alignItems: 'center', width: '100%' }}>
+                <WeatherChart
+                  temperatures={weatherData.temperature_2m}
+                  currentTime={new Date().getHours()}
+                />
+              </View>
+            }
           />
         </>
       ) : (
