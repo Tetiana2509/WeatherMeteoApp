@@ -19,6 +19,7 @@ export default function App() {
   const [weatherData, setWeatherData] = useState<HourlyWeather | null>(null);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('Berlin');
+  const [lastCoords, setLastCoords] = useState<{ lat: number; lon: number } | null>(null);
 
   const fetchWeather = async (lat: number, lon: number) => {
     setLoading(true);
@@ -54,7 +55,8 @@ export default function App() {
     try {
       const coords = await getCoordinatesByQuery(query);
       if (!coords) throw new Error('Please also enter the country. For example: "10115, Germany"');
-      fetchWeather(coords.lat, coords.lon);
+      setLastCoords(coords); // Save last searched coordinates
+      await fetchWeather(coords.lat, coords.lon);
     } catch (err: any) {
       Alert.alert('Search error', err.message);
     }
@@ -70,7 +72,9 @@ export default function App() {
         return;
       }
       const location = await Location.getCurrentPositionAsync({});
-      fetchWeather(location.coords.latitude, location.coords.longitude);
+      const coords = { lat: location.coords.latitude, lon: location.coords.longitude };
+      setLastCoords(coords); // Save last location coordinates
+      await fetchWeather(coords.lat, coords.lon);
     } catch (err) {
       Alert.alert('Error', 'Could not determine location');
     }
@@ -78,12 +82,30 @@ export default function App() {
   };
 
   const handleUpdate = async () => {
-    if (!query) return;
-    await handleSearch();
+    try {
+      const coords = await getCoordinatesByQuery(query);
+      if (coords) {
+        setLastCoords(coords);
+        await fetchWeather(coords.lat, coords.lon);
+      } else if (lastCoords) {
+        await fetchWeather(lastCoords.lat, lastCoords.lon);
+      } else {
+        Alert.alert('Update error', 'No previous location or query to update');
+      }
+    } catch (err: any) {
+      Alert.alert('Update error', err.message);
+    }
   };
 
   useEffect(() => {
-    handleSearch();
+    const initialSearch = async () => {
+      const coords = await getCoordinatesByQuery(query);
+      if (coords) {
+        setLastCoords(coords);
+        await fetchWeather(coords.lat, coords.lon);
+      }
+    };
+    initialSearch();
   }, []);
 
   const renderItem = ({ item, index }: { item: string; index: number }) => (
@@ -145,15 +167,14 @@ export default function App() {
             data={weatherData.time}
             renderItem={renderItem}
             keyExtractor={(item, index) => item + index}
-            ListHeaderComponent={
-              <View style={{ marginBottom: 20, alignItems: 'center', width: '100%' }}>
-                <WeatherChart
-                  temperatures={weatherData.temperature_2m}
-                  currentTime={new Date().getHours()}
-                />
-              </View>
-            }
           />
+
+          <View style={{ marginVertical: 20, alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+            <WeatherChart
+              temperatures={weatherData.temperature_2m}
+              currentTime={new Date().getHours()}
+            />
+          </View>
         </>
       ) : (
         <Text style={styles.error}>No data</Text>
