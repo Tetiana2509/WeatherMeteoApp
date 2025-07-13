@@ -81,19 +81,14 @@ export default function App() {
     setLoading(false);
   };
 
+  // Update button now uses lastCoords
   const handleUpdate = async () => {
-    try {
-      const coords = await getCoordinatesByQuery(query);
-      if (coords) {
-        setLastCoords(coords);
-        await fetchWeather(coords.lat, coords.lon);
-      } else if (lastCoords) {
-        await fetchWeather(lastCoords.lat, lastCoords.lon);
-      } else {
-        Alert.alert('Update error', 'No previous location or query to update');
-      }
-    } catch (err: any) {
-      Alert.alert('Update error', err.message);
+    if (lastCoords) {
+      await fetchWeather(lastCoords.lat, lastCoords.lon);
+    } else if (query) {
+      await handleSearch();
+    } else {
+      Alert.alert('Update error', 'No previous location or query to update');
     }
   };
 
