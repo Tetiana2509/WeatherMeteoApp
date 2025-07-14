@@ -1,20 +1,20 @@
-// WeatherChart.tsx
-import React, { useMemo } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, StyleSheet, Text, PixelRatio } from 'react-native';
 import {
+  CurveType,
   LineChart,
   lineDataItem,
   yAxisSides,
 } from 'react-native-gifted-charts';
+import { MadoText } from './Controls';
 
 const CHART_COLOR = 'skyblue';
+const DATA_POINT_DIMS = 16;
+const Y_AXIS_LABEL_WIDTH = 30;
 
 export interface WeatherChartProps {
-  /** 24 hourly temperatures, index 0 = 00:00, index 23 = 23:00 */
   temperatures: number[];
-  /** Optional chart height */
   height?: number;
-  /** Current time as hour index */
   currentTime: number;
 }
 
@@ -38,9 +38,9 @@ const hourLabel = (hour: number) => {
       {parts.map((p) => {
         const fontStyle = { fontSize: p === 'AM' || p === 'PM' ? 11 : 13 };
         return (
-          <Text key={p} style={[styles.xLabel, fontStyle]}>
+          <MadoText key={p} style={[styles.xLabel, fontStyle]}>
             {p}
-          </Text>
+          </MadoText>
         );
       })}
     </View>
@@ -51,12 +51,12 @@ const customDataPoint = () => {
   return (
     <View
       style={{
-        width: 15,
-        height: 15,
+        width: DATA_POINT_DIMS,
+        height: DATA_POINT_DIMS,
         backgroundColor: 'white',
         borderWidth: 3,
-        borderRadius: 15,
-        borderColor: CHART_COLOR,
+        borderRadius: 100,
+        borderColor: "#4C4C4C",
       }}
     />
   );
@@ -64,9 +64,11 @@ const customDataPoint = () => {
 
 const WeatherChart: React.FC<WeatherChartProps> = ({
   temperatures,
-  height = 130,
+  height = 160,
   currentTime,
 }) => {
+  const [viewWidth, setViewWidth] = useState<number | null>(null);
+
   if (!temperatures?.length) {
     return (
       <View style={[{ height }, styles.container]}>
@@ -75,74 +77,109 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     );
   }
 
-  // Compute Y-axis bounds rounded to nearest 5°
-  const step = 5;
-  const minTemp = Math.floor(Math.min(...temperatures) / step) * step - step;
-  const maxTemp = Math.ceil(Math.max(...temperatures) / step) * step;
-  const noOfSteps = Math.round((maxTemp - minTemp) / step);
+  // НЕ мутируем входной props!
+  const safeTemps = temperatures.length === 24
+    ? [...temperatures, temperatures[temperatures.length - 1]]
+    : temperatures;
 
-  // Prepare data for Gifted Charts
-  const currentHour = Math.floor(currentTime);
-  const data = temperatures.map((value, i) => {
-    const showLabel = i % 6 === 0;
-    const isCurrent = currentHour === (i + 1);
+  const noOfSteps = 7;
+  const minValue = Math.min(...safeTemps);
+  const maxValue = Math.max(...safeTemps);
+  const range = maxValue - minValue;
+  const step = Math.ceil(range / 4) || 1;
+  const chartMin = Math.floor(minValue) - 2 * step;
+  const chartMax = chartMin + step * noOfSteps;
+
+  const currentHour = Math.round(currentTime);
+
+  const smoothedTemps = safeTemps.map((_, i) => {
+    const windowSize = 7;
+    const halfWindow = Math.floor(windowSize / 2);
+    let sum = 0;
+    let count = 0;
+
+    for (let j = Math.max(0, i - halfWindow); j <= Math.min(safeTemps.length - 1, i + halfWindow); j++) {
+      sum += safeTemps[j];
+      count++;
+    }
+
+    return sum / count;
+  });
+
+  const data = smoothedTemps.map((value, i) => {
+    const showIndex = i % 6 === 0;
+    const isCurrent = currentHour === i;
     return {
-      value: value - minTemp,
+      value: value - chartMin,
       hideDataPoint: !isCurrent,
       customDataPoint: isCurrent ? customDataPoint : undefined,
-      showXAxisIndex: showLabel,
-      labelComponent: showLabel ? () => hourLabel(i) : () => null,
+      dataPointHeight: DATA_POINT_DIMS,
+      dataPointWidth: DATA_POINT_DIMS,
+      showXAxisIndex: showIndex,
+      labelComponent: showIndex && i < 24 ? () => hourLabel(i) : () => null,
     } as lineDataItem;
   });
 
   const yLabels = useMemo(
     () =>
-      Array.from({ length: noOfSteps + 1 }, (_, i) => `${minTemp + i * step}°`),
-    [minTemp, noOfSteps, step]
+      Array.from({ length: noOfSteps + 1 }, (_, i) => `${chartMin + i * step}°`),
+    [chartMin, step, noOfSteps]
   );
 
-  console.log({ currentHour, minTemp, maxTemp, noOfSteps });
+  const fontScale = Math.max(1, PixelRatio.getFontScale());
 
-  const spacing = 10;
-  const width = spacing * (temperatures.length - 1);
+  if (viewWidth === null) {
+    return (
+      <View
+        style={[{ height }, styles.container]}
+        onLayout={e => setViewWidth(e.nativeEvent.layout.width)}
+      >
+        <Text style={styles.placeholder}>Loading chart…</Text>
+      </View>
+    );
+  }
+
+  const intervals = safeTemps.length - 1;
+  const spacing = Math.floor((viewWidth - Y_AXIS_LABEL_WIDTH) / intervals);
+  const chartWidth = spacing * intervals + DATA_POINT_DIMS;
 
   return (
-    <View style={[{ height }, styles.container]}>
+    <View
+      style={[{ height }, styles.container]}
+    >
       <LineChart
         data={data}
-        height={height}
-        width={width}
-        // line customization
+        height={height - 30}
+        width={chartWidth}
         curved
+        curvature={0.2}
+        curveType={CurveType.CUBIC}
         color={CHART_COLOR}
-        thickness={4}
-        // area chart
+        thickness={2}
         areaChart
-        startFillColor={CHART_COLOR}
-        startOpacity={0.8}
+        startFillColor={'#ffdd44'}
+        startOpacity={0.7}
         endFillColor={CHART_COLOR}
-        endOpacity={0.25}
-        // horizontal spacing
-        initialSpacing={0}
+        endOpacity={0.5}
+        initialSpacing={8}
         spacing={spacing}
         endSpacing={0}
-        // customize X-axis notches
         xAxisIndicesWidth={1}
-        xAxisIndicesHeight={4}
+        xAxisIndicesHeight={8}
         xAxisIndicesColor="#656565"
-        // yAxisOffset={45}
         stepValue={step}
         noOfSections={noOfSteps}
         xAxisColor="#656565"
-        // customize Y-axis
         yAxisColor="transparent"
-        yAxisTextStyle={styles.yLabel}
+        yAxisTextStyle={{
+          ...styles.yLabel,
+          fontSize: styles.yLabel.fontSize / fontScale,
+        }}
         yAxisLabelTexts={yLabels}
         yAxisSide={yAxisSides.RIGHT}
-        yAxisLabelWidth={40}
+        yAxisLabelWidth={viewWidth - chartWidth}
         showVerticalLines={false}
         showYAxisIndices={false}
-        // horizontal lines
         rulesType="solid"
         rulesColor="#434343"
         rulesThickness={1}
@@ -157,8 +194,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    alignSelf: 'center', // <-- add this
-    // width: '100%',    // <-- remove or comment out this line
+    width: '98%',
   },
   xLabel: {
     color: '#9a9a9a',
@@ -171,7 +207,7 @@ const styles = StyleSheet.create({
     color: '#9a9a9a',
     fontSize: 13,
     fontWeight: '600',
-    textAlign: 'right',
+    paddingLeft: 8,
   },
   placeholder: {
     color: '#aaa',

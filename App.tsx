@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  FlatList,
   ActivityIndicator,
   SafeAreaView,
   StyleSheet,
@@ -20,6 +19,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('Berlin');
   const [lastCoords, setLastCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [temperatureArray, setTemperatureArray] = useState<number[]>([]);
 
   const fetchWeather = async (lat: number, lon: number) => {
     setLoading(true);
@@ -27,10 +27,27 @@ export default function App() {
       const fullData = await getHourlyWeather(lat, lon);
       const today = new Date().toISOString().split('T')[0];
 
-      const filteredIndices = fullData.time
+      // Log the first few times for debugging
+      console.log('API times:', fullData.time.slice(0, 5));
+      console.log('Today:', today);
+
+      let filteredIndices = fullData.time
         .map((time, index) => ({ time, index }))
         .filter(({ time }) => time.startsWith(today))
         .map(({ index }) => index);
+
+      // Fallback: if no data for today, use the first 24 hours
+      if (filteredIndices.length === 0 && fullData.time.length >= 24) {
+        filteredIndices = Array.from({ length: 24 }, (_, i) => i);
+        console.log('Fallback to first 24 hours');
+      }
+
+      // If still empty, show an error
+      if (filteredIndices.length === 0) {
+        Alert.alert('No data', 'No weather data available for this location.');
+        setWeatherData(null);
+        return;
+      }
 
       const filteredData: HourlyWeather = {
         time: filteredIndices.map(i => fullData.time[i]),
@@ -43,7 +60,8 @@ export default function App() {
         sunset: fullData.sunset,
       };
 
-      setWeatherData(filteredData);
+      setWeatherData(filteredData)
+      console.log('Filtered temperatures:', filteredData.temperature_2m);
     } catch (error) {
       Alert.alert('Error', 'Failed to get weather');
     } finally {
@@ -55,7 +73,7 @@ export default function App() {
     try {
       const coords = await getCoordinatesByQuery(query);
       if (!coords) throw new Error('Please also enter the country. For example: "10115, Germany"');
-      setLastCoords(coords); // Save last searched coordinates
+      setLastCoords(coords);
       await fetchWeather(coords.lat, coords.lon);
     } catch (err: any) {
       Alert.alert('Search error', err.message);
@@ -73,7 +91,7 @@ export default function App() {
       }
       const location = await Location.getCurrentPositionAsync({});
       const coords = { lat: location.coords.latitude, lon: location.coords.longitude };
-      setLastCoords(coords); // Save last location coordinates
+      setLastCoords(coords);
       await fetchWeather(coords.lat, coords.lon);
     } catch (err) {
       Alert.alert('Error', 'Could not determine location');
@@ -81,7 +99,6 @@ export default function App() {
     setLoading(false);
   };
 
-  // Update button now uses lastCoords
   const handleUpdate = async () => {
     if (lastCoords) {
       await fetchWeather(lastCoords.lat, lastCoords.lon);
@@ -102,26 +119,6 @@ export default function App() {
     };
     initialSearch();
   }, []);
-
-  const renderItem = ({ item, index }: { item: string; index: number }) => (
-    <View style={styles.card}>
-      <Text style={styles.time}>
-        {new Date(item).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-      </Text>
-      <Text style={styles.temp}>
-        {Math.round(weatherData?.temperature_2m[index] ?? 0)}°C
-      </Text>
-      <Text style={styles.label}>
-        Feels like: {Math.round(weatherData?.apparent_temperature[index] ?? 0)}°C
-      </Text>
-      <Text style={styles.label}>
-        Humidity: {weatherData?.relative_humidity_2m[index] ?? 0}%
-      </Text>
-      <Text style={styles.label}>
-        Precipitation: {weatherData?.precipitation[index]?.toFixed(1) ?? 0} mm
-      </Text>
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -146,10 +143,9 @@ export default function App() {
         <Text style={styles.buttonText}>📍 My location</Text>
       </TouchableOpacity>
 
-
       {loading ? (
         <ActivityIndicator size="large" style={{ marginTop: 20 }} />
-      ) : weatherData ? (
+      ) : weatherData && weatherData.temperature_2m && weatherData.temperature_2m.length > 0 ? (
         <>
           <Text style={styles.sun}>
             🌅 Sunrise: {new Date(weatherData.sunrise[0]).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
@@ -158,18 +154,14 @@ export default function App() {
             🌇 Sunset: {new Date(weatherData.sunset[0]).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
           </Text>
 
-          <FlatList
-            data={weatherData.time}
-            renderItem={renderItem}
-            keyExtractor={(item, index) => item + index}
+          <View style={{ marginTop: 20 }}>
+          <WeatherChart
+            key={weatherData.temperature_2m.join(',')}
+            temperatures={weatherData.temperature_2m}
+            currentTime={new Date().getHours()}
           />
-
-          <View style={{ marginVertical: 20, alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-            <WeatherChart
-              temperatures={weatherData.temperature_2m}
-              currentTime={new Date().getHours()}
-            />
-          </View>
+        </View>
+          <Text style={{color: 'blue'}}>{JSON.stringify(weatherData?.temperature_2m)}</Text>
         </>
       ) : (
         <Text style={styles.error}>No data</Text>
@@ -212,16 +204,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  card: {
-    backgroundColor: '#fff',
-    padding: 14,
-    marginVertical: 6,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  time: { fontSize: 16, color: '#555' },
-  temp: { fontSize: 24, fontWeight: 'bold', color: '#007AFF' },
-  label: { fontSize: 14, color: '#444', marginTop: 2 },
   sun: {
     textAlign: 'center',
     fontSize: 16,
@@ -230,3 +212,5 @@ const styles = StyleSheet.create({
   },
   error: { color: 'red', textAlign: 'center' },
 });
+
+
