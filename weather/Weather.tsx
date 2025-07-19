@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ViewStyle } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import WeatherNow from './WeatherNow';
 import WeatherChart from './WeatherChart';
@@ -7,18 +7,20 @@ import WeatherChart from './WeatherChart';
 type WeatherProps = {
   height?: number;
   currentTime: number;
+  temperatures?: number[];
+  style?: ViewStyle;
 };
 
-export default function Weather({ height, currentTime }: WeatherProps) {
-  // 24h temperatures: 95014, July 7, 2025 
-  const temperatures = [
+export default function Weather({ height, currentTime, temperatures, style }: WeatherProps) {
+  // 24h temperatures + 1: 95014, July 7, 2025 
+  temperatures ??= [
     59, 59, 57, 57, 57, 55, 55, 57, 61, 63, 68, 72,
     75, 79, 79, 79, 79, 79, 75, 73, 68, 64, 64, 63,
     62
   ];
 
   return (
-    <View style={styles.weatherRow}>
+    <View style={[styles.weatherRow, style]}>
       <WeatherNow
         icon={
           <MaterialIcons
