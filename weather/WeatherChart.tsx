@@ -66,80 +66,89 @@ const customDataPoint = () => {
   );
 };
 
-const WeatherChart: React.FC<WeatherChartProps> = ({
+const WeatherChartInternal: React.FC<WeatherChartProps> = ({
   temperatures,
   height = 160,
   currentTime,
 }) => {
-  if (!temperatures?.length) {
+  const [viewWidth, setViewWidth] = React.useState<number>(0);
+  
+  // All hooks must be at the top - memoize data processing
+  const processedTemps = React.useMemo(() => {
+    if (!temperatures?.length) return null;
+    
+    let temps = temperatures;
+    if (temperatures.length === 24) {
+      temps = [...temperatures, temperatures[temperatures.length - 1]];
+    }
+    
+    return temps;
+  }, [temperatures]);
+  
+  const smoothedTemps = React.useMemo(() => {
+    if (!processedTemps) return [];
+    
+    return processedTemps.map((_, i) => {
+      const windowSize = 7;
+      const halfWindow = Math.floor(windowSize / 2);
+      let sum = 0;
+      let count = 0;
+      
+      for (let j = Math.max(0, i - halfWindow); j <= Math.min(processedTemps.length - 1, i + halfWindow); j++) {
+        sum += processedTemps[j];
+        count++;
+      }
+      
+      return sum / count;
+    });
+  }, [processedTemps]);
+  
+  const chartData = React.useMemo(() => {
+    if (!processedTemps || !smoothedTemps.length) return null;
+    
+    const noOfSteps = 7;
+    const minValue = Math.min(...processedTemps);
+    const maxValue = Math.max(...processedTemps);
+    const range = maxValue - minValue;
+    const step = Math.ceil(range / 4) || 1;
+    const chartMin = Math.floor(minValue) - 2 * step;
+    const currentHour = Math.round(currentTime);
+    
+    const data = smoothedTemps.map((value, i) => {
+      const showIndex = i % 6 === 0;
+      const isCurrent = currentHour === i;
+      return {
+        value: value - chartMin,
+        hideDataPoint: !isCurrent, 
+        customDataPoint: isCurrent ? customDataPoint : undefined,
+        dataPointHeight: DATA_POINT_DIMS,
+        dataPointWidth: DATA_POINT_DIMS,
+        showXAxisIndex: showIndex,
+        labelComponent: showIndex && i < 24 ? () => hourLabel(i) : () => null,
+      } as lineDataItem;
+    });
+    
+    const yLabels = Array.from({ length: noOfSteps + 1 }, (_, i) => `${chartMin + i * step}°`);
+    
+    return { data, yLabels, step, noOfSteps, chartMin };
+  }, [smoothedTemps, processedTemps, currentTime]);
+
+  if (!temperatures?.length || !chartData) {
     return (
       <View style={[{ height }, styles.container]}>
-        <Text style={styles.placeholder}>No data available</Text>
+        <Text style={styles.placeholder}>
+          {!temperatures?.length ? 'No data available' : 'Loading chart...'}
+        </Text>
       </View>
     );
   }
 
-  if (temperatures.length === 24) {
-    temperatures = [...temperatures, temperatures[temperatures.length - 1]];
-  }
-
-  // Fixed number of Y-axis steps
-  const noOfSteps = 7;
-  
-  // Find min/max of data
-  const minValue = Math.min(...temperatures);
-  const maxValue = Math.max(...temperatures);
-
-  // Calculate step size so that (max - min) fits 4 steps, then expand to 7 steps for padding
-  const range = maxValue - minValue;
-  const step = Math.ceil(range / 4) || 1; // allow any integer step, minimum 1
-  const chartMin = Math.floor(minValue) - 2 * step;
-  const chartMax = chartMin + step * noOfSteps;
-
-  // Prepare data for Gifted Charts
-  const currentHour = Math.round(currentTime);
-  
-  // Create smoothed temperature values for a nice flowing curve
-  const smoothedTemps = temperatures.map((_, i) => {
-    const windowSize = 7; // Moderate smoothing window
-    const halfWindow = Math.floor(windowSize / 2);
-    let sum = 0;
-    let count = 0;
-    
-    for (let j = Math.max(0, i - halfWindow); j <= Math.min(temperatures.length - 1, i + halfWindow); j++) {
-      sum += temperatures[j];
-      count++;
-    }
-    
-    return sum / count;
-  });
-  
-  const data = smoothedTemps.map((value, i) => {
-    const showIndex = i % 6 === 0;
-    const isCurrent = currentHour === i;
-    return {
-      value: value - chartMin,
-      hideDataPoint: !isCurrent, 
-      customDataPoint: isCurrent ? customDataPoint : undefined,
-      dataPointHeight: DATA_POINT_DIMS,
-      dataPointWidth: DATA_POINT_DIMS,
-      showXAxisIndex: showIndex,
-      labelComponent: showIndex && i < 24 ? () => hourLabel(i) : () => null,
-    } as lineDataItem;
-  });
-
-  const yLabels = useMemo(
-    () =>
-      Array.from({ length: noOfSteps + 1 }, (_, i) => `${chartMin + i * step}°`),
-    [chartMin, step, noOfSteps]
-  );
-
-  // Calculate chart width based on container width and set spacing accordingly
-  const [viewWidth, setViewWidth] = React.useState<number>(0);
+  // Use the memoized chart data
+  const { data, yLabels, step, noOfSteps } = chartData;
 
   // Use chartWidth to calculate spacing dynamically
-  const intervals = temperatures.length - 1;
-  const spacing = viewWidth > 0 && temperatures.length > 1
+  const intervals = processedTemps!.length - 1;
+  const spacing = viewWidth > 0 && processedTemps!.length > 1
     ? Math.floor((viewWidth - Y_AXIS_LABEL_WIDTH) / intervals)
     : 10;
   const chartWidth = spacing * intervals + DATA_POINT_DIMS;
@@ -198,6 +207,17 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
       />
     </View>
   );
+};
+
+// Wrapper component that manages its own key for re-rendering
+const WeatherChart: React.FC<WeatherChartProps> = (props) => {
+  // Create a stable key that changes when data meaningfully changes
+  const chartKey = React.useMemo(() => {
+    if (!props.temperatures?.length) return 'empty';
+    return `chart-${props.temperatures.join(',')}-${props.currentTime}`;
+  }, [props.temperatures, props.currentTime]);
+
+  return <WeatherChartInternal key={chartKey} {...props} />;
 };
 
 export default WeatherChart;
