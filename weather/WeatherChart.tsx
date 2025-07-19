@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+// WeatherChart.tsx
+import React, { useMemo } from 'react';
 import { View, StyleSheet, Text, PixelRatio } from 'react-native';
 import {
   CurveType,
@@ -13,8 +14,11 @@ const DATA_POINT_DIMS = 16;
 const Y_AXIS_LABEL_WIDTH = 30;
 
 export interface WeatherChartProps {
+  /** 24 hourly temperatures, index 0 = 00:00, index 23 = 23:00 */
   temperatures: number[];
+  /** Optional chart height */
   height?: number;
+  /** Current time as hour index */
   currentTime: number;
 }
 
@@ -67,8 +71,6 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   height = 160,
   currentTime,
 }) => {
-  const [viewWidth, setViewWidth] = useState<number | null>(null);
-
   if (!temperatures?.length) {
     return (
       <View style={[{ height }, styles.container]}>
@@ -77,41 +79,47 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     );
   }
 
-  // НЕ мутируем входной props!
-  const safeTemps = temperatures.length === 24
-    ? [...temperatures, temperatures[temperatures.length - 1]]
-    : temperatures;
+  if (temperatures.length === 24) {
+    temperatures = [...temperatures, temperatures[temperatures.length - 1]];
+  }
 
+  // Fixed number of Y-axis steps
   const noOfSteps = 7;
-  const minValue = Math.min(...safeTemps);
-  const maxValue = Math.max(...safeTemps);
+  
+  // Find min/max of data
+  const minValue = Math.min(...temperatures);
+  const maxValue = Math.max(...temperatures);
+
+  // Calculate step size so that (max - min) fits 4 steps, then expand to 7 steps for padding
   const range = maxValue - minValue;
-  const step = Math.ceil(range / 4) || 1;
+  const step = Math.ceil(range / 4) || 1; // allow any integer step, minimum 1
   const chartMin = Math.floor(minValue) - 2 * step;
   const chartMax = chartMin + step * noOfSteps;
 
+  // Prepare data for Gifted Charts
   const currentHour = Math.round(currentTime);
-
-  const smoothedTemps = safeTemps.map((_, i) => {
-    const windowSize = 7;
+  
+  // Create smoothed temperature values for a nice flowing curve
+  const smoothedTemps = temperatures.map((_, i) => {
+    const windowSize = 7; // Moderate smoothing window
     const halfWindow = Math.floor(windowSize / 2);
     let sum = 0;
     let count = 0;
-
-    for (let j = Math.max(0, i - halfWindow); j <= Math.min(safeTemps.length - 1, i + halfWindow); j++) {
-      sum += safeTemps[j];
+    
+    for (let j = Math.max(0, i - halfWindow); j <= Math.min(temperatures.length - 1, i + halfWindow); j++) {
+      sum += temperatures[j];
       count++;
     }
-
+    
     return sum / count;
   });
-
+  
   const data = smoothedTemps.map((value, i) => {
     const showIndex = i % 6 === 0;
     const isCurrent = currentHour === i;
     return {
       value: value - chartMin,
-      hideDataPoint: !isCurrent,
+      hideDataPoint: !isCurrent, 
       customDataPoint: isCurrent ? customDataPoint : undefined,
       dataPointHeight: DATA_POINT_DIMS,
       dataPointWidth: DATA_POINT_DIMS,
@@ -126,50 +134,53 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     [chartMin, step, noOfSteps]
   );
 
-  const fontScale = Math.max(1, PixelRatio.getFontScale());
+  // Calculate chart width based on container width and set spacing accordingly
+  const [viewWidth, setViewWidth] = React.useState<number>(0);
 
-  if (viewWidth === null) {
-    return (
-      <View
-        style={[{ height }, styles.container]}
-        onLayout={e => setViewWidth(e.nativeEvent.layout.width)}
-      >
-        <Text style={styles.placeholder}>Loading chart…</Text>
-      </View>
-    );
-  }
-
-  const intervals = safeTemps.length - 1;
-  const spacing = Math.floor((viewWidth - Y_AXIS_LABEL_WIDTH) / intervals);
+  // Use chartWidth to calculate spacing dynamically
+  const intervals = temperatures.length - 1;
+  const spacing = viewWidth > 0 && temperatures.length > 1
+    ? Math.floor((viewWidth - Y_AXIS_LABEL_WIDTH) / intervals)
+    : 10;
   const chartWidth = spacing * intervals + DATA_POINT_DIMS;
+
+  const fontScale = Math.max(1, PixelRatio.getFontScale());
+  console.log({viewWidth, chartWidth, intervals, spacing});
 
   return (
     <View
       style={[{ height }, styles.container]}
+      onLayout={e => setViewWidth(e.nativeEvent.layout.width)}
     >
       <LineChart
         data={data}
         height={height - 30}
         width={chartWidth}
+        // line customization
         curved
         curvature={0.2}
         curveType={CurveType.CUBIC}
         color={CHART_COLOR}
         thickness={2}
+        // area chart
         areaChart
         startFillColor={'#ffdd44'}
         startOpacity={0.7}
         endFillColor={CHART_COLOR}
         endOpacity={0.5}
+        // horizontal spacing
         initialSpacing={8}
         spacing={spacing}
         endSpacing={0}
+        // customize X-axis notches
         xAxisIndicesWidth={1}
         xAxisIndicesHeight={8}
         xAxisIndicesColor="#656565"
+        // yAxisOffset={45}
         stepValue={step}
         noOfSections={noOfSteps}
         xAxisColor="#656565"
+        // customize Y-axis
         yAxisColor="transparent"
         yAxisTextStyle={{
           ...styles.yLabel,
@@ -180,6 +191,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
         yAxisLabelWidth={viewWidth - chartWidth}
         showVerticalLines={false}
         showYAxisIndices={false}
+        // horizontal lines
         rulesType="solid"
         rulesColor="#434343"
         rulesThickness={1}
@@ -192,9 +204,8 @@ export default WeatherChart;
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '98%',
+    flex: 1,
+    width: 100,
   },
   xLabel: {
     color: '#9a9a9a',

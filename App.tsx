@@ -12,7 +12,7 @@ import {
 import * as Location from 'expo-location';
 import { getHourlyWeather, HourlyWeather } from './services/meteoService';
 import { getCoordinatesByQuery } from './services/geocodingService';
-import WeatherChart from './WeatherChart';
+import WeatherChart from './weather/WeatherChart';
 
 export default function App() {
   const [weatherData, setWeatherData] = useState<HourlyWeather | null>(null);
