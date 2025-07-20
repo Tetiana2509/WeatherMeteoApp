@@ -11,7 +11,7 @@ export interface HourlyWeather {
 
 export const getHourlyWeather = async (lat: number, lon: number): Promise<HourlyWeather> => {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weathercode&daily=sunrise,sunset&timezone=auto`;
-
+  console.log('Fetching from:', url);
   const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch data');
 

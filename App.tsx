@@ -12,8 +12,8 @@ import {
 import * as Location from "expo-location";
 import { getHourlyWeather, HourlyWeather } from "./services/meteoService";
 import { getCoordinatesByQuery } from "./services/geocodingService";
-import WeatherChart from "./weather/WeatherChart";
 import Weather from "./weather/Weather";
+import { useCache } from "./hooks/useCache";
 
 export default function App() {
   const [weatherData, setWeatherData] = useState<HourlyWeather | null>(null);
@@ -23,12 +23,18 @@ export default function App() {
     lat: number;
     lon: number;
   } | null>(null);
-  const [temperatureArray, setTemperatureArray] = useState<number[]>([]);
 
-  const fetchWeather = async (lat: number, lon: number) => {
+  // Initialize cache hook with 5-minute TTL
+  const weatherCache = useCache<HourlyWeather>({ ttlMinutes: 5 });
+  const fetchWeather = async (lat: number, lon: number, forceRefresh: boolean = false) => {
     setLoading(true);
     try {
-      const fullData = await getHourlyWeather(lat, lon);
+      const fullData = await weatherCache.executeWithCache(
+        { lat, lon },
+        () => getHourlyWeather(lat, lon),
+        forceRefresh
+      );
+
       const today = new Date().toISOString().split("T")[0];
 
       // Log the first few times for debugging
