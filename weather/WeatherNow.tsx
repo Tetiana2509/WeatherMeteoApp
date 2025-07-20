@@ -18,7 +18,7 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
 }) => (
   <View style={styles.container}>
     <View style={styles.iconContainer}>{icon}</View>
-    <MadoText style={styles.currentTemp}>{currentTemp}°</MadoText>
+    <MadoText style={styles.currentTemp} numberOfLines={1} adjustsFontSizeToFit>{currentTemp}°</MadoText>
     <MadoText style={styles.tempRange}>H {highTemp}°</MadoText>
     <MadoText style={styles.tempRange}>L {lowTemp}°</MadoText>
   </View>

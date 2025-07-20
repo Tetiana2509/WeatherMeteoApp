@@ -188,7 +188,7 @@ export default function App() {
             <Weather
               temperatures={weatherData.temperature_2m}
               currentTime={new Date().getHours()}
-              style={{ marginLeft: 0, marginRight: 0 }}
+              style={{ marginLeft: 0, marginRight: 0, marginTop: 20 }}
             />
 
             <Text style={{ color: "aqua" }}>
