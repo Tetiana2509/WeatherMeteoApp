@@ -1,6 +1,7 @@
 // WeatherNow.tsx
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { MadoText } from './Controls';
 
 interface WeatherNowProps {
   icon: React.ReactNode;
@@ -17,9 +18,9 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
 }) => (
   <View style={styles.container}>
     <View style={styles.iconContainer}>{icon}</View>
-    <Text style={styles.currentTemp}>{currentTemp}°</Text>
-    <Text style={styles.tempRange}>H {highTemp}°</Text>
-    <Text style={styles.tempRange}>L {lowTemp}°</Text>
+    <MadoText style={styles.currentTemp} numberOfLines={1} adjustsFontSizeToFit>{currentTemp}°</MadoText>
+    <MadoText style={styles.tempRange}>H {highTemp}°</MadoText>
+    <MadoText style={styles.tempRange}>L {lowTemp}°</MadoText>
   </View>
 );
 
