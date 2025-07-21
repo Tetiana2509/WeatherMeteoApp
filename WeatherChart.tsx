@@ -77,7 +77,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     );
   }
 
-  // НЕ мутируем входной props!
+  // ✅ безопасная копия props
   const safeTemps = temperatures.length === 24
     ? [...temperatures, temperatures[temperatures.length - 1]]
     : temperatures;
@@ -111,8 +111,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     const isCurrent = currentHour === i;
     return {
       value: value - chartMin,
-      hideDataPoint: !isCurrent,
-      customDataPoint: isCurrent ? customDataPoint : undefined,
+      customDataPoint: isCurrent ? customDataPoint : undefined, // показываем маркер
       dataPointHeight: DATA_POINT_DIMS,
       dataPointWidth: DATA_POINT_DIMS,
       showXAxisIndex: showIndex,
@@ -120,7 +119,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     } as lineDataItem;
   });
 
-  const yLabels = useMemo(
+const yLabels = useMemo(
     () =>
       Array.from({ length: noOfSteps + 1 }, (_, i) => `${chartMin + i * step}°`),
     [chartMin, step, noOfSteps]
@@ -146,6 +145,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   return (
     <View
       style={[{ height }, styles.container]}
+      onLayout={e => setViewWidth(e.nativeEvent.layout.width)}
     >
       <LineChart
         data={data}

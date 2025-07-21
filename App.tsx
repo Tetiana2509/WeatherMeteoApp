@@ -56,6 +56,7 @@ export default function App() {
         relative_humidity_2m: filteredIndices.map(i => fullData.relative_humidity_2m[i]),
         precipitation: filteredIndices.map(i => fullData.precipitation[i]),
         weathercode: filteredIndices.map(i => fullData.weathercode[i]),
+        uv_index: filteredIndices.map(i => fullData.uv_index[i]), 
         sunrise: fullData.sunrise,
         sunset: fullData.sunset,
       };
@@ -155,12 +156,18 @@ export default function App() {
           </Text>
 
           <View style={{ marginTop: 20 }}>
-          <WeatherChart
-            key={weatherData.temperature_2m.join(',')}
-            temperatures={weatherData.temperature_2m}
-            currentTime={new Date().getHours()}
-          />
-        </View>
+            <WeatherChart
+              key={weatherData.temperature_2m.join(',')}
+              temperatures={weatherData.temperature_2m}
+              currentTime={new Date().getHours()}
+            />
+          </View>
+
+          <Text style={{ marginTop: 10, fontSize: 16 }}>
+            ☀️ UV Index (hourly): {weatherData.uv_index.join(', ')}
+          </Text>
+
+
           <Text style={{color: 'blue'}}>{JSON.stringify(weatherData?.temperature_2m)}</Text>
         </>
       ) : (
