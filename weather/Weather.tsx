@@ -8,10 +8,11 @@ type WeatherProps = {
   height?: number;
   currentTime: number;
   temperatures?: number[];
+  temperatureUnit?: 'C' | 'F';  // ADD THIS LINE
   style?: ViewStyle;
 };
 
-export default function Weather({ height, currentTime, temperatures, style }: WeatherProps) {
+export default function Weather({ height, currentTime, temperatures, temperatureUnit = 'C', style }: WeatherProps) {
   // 24h temperatures + 1: 95014, July 7, 2025 
   temperatures ??= [
     59, 59, 57, 57, 57, 55, 55, 57, 61, 63, 68, 72,
@@ -32,11 +33,13 @@ export default function Weather({ height, currentTime, temperatures, style }: We
         currentTemp={temperatures[Math.floor(currentTime)]}
         highTemp={Math.max(...temperatures)}
         lowTemp={Math.min(...temperatures)}
+        temperatureUnit={temperatureUnit}  // ADD THIS LINE
       />
       <WeatherChart
         temperatures={temperatures}
         height={height}
         currentTime={currentTime}
+        temperatureUnit={temperatureUnit}  // ADD THIS LINE
       />
     </View>
   );

@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "WeatherMeteoApp",
+			"path": "."
+		},
+		{
+			"name": "weather",
+			"path": "../Downloads/WeatherMeteoApp/new-weather-chart/weather"
+		}
+	],
+	"settings": {}
+}

@@ -23,6 +23,7 @@ export default function App() {
     lat: number;
     lon: number;
   } | null>(null);
+  const [temperatureUnit, setTemperatureUnit] = useState<'C' | 'F'>('C');
 
   // Initialize cache hook with 5-minute TTL
   const weatherCache = useCache<HourlyWeather>({ ttlMinutes: 5 });
@@ -129,6 +130,17 @@ export default function App() {
     }
   };
 
+  const convertTemperature = (temp: number, unit: 'C' | 'F'): number => {
+    if (unit === 'F') {
+      return (temp * 9/5) + 32;
+    }
+    return temp;
+  };
+
+  const convertTemperatureArray = (temps: number[], unit: 'C' | 'F'): number[] => {
+    return temps.map(temp => convertTemperature(temp, unit));
+  };
+
   useEffect(() => {
     const initialSearch = async () => {
       const coords = await getCoordinatesByQuery(query);
@@ -164,6 +176,15 @@ export default function App() {
           <Text style={styles.buttonText}>📍 My location</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity 
+          style={styles.gpsButton} 
+          onPress={() => setTemperatureUnit(temperatureUnit === 'C' ? 'F' : 'C')}
+        >
+          <Text style={styles.buttonText}>
+            🌡️ Switch to °{temperatureUnit === 'C' ? 'F' : 'C'}
+          </Text>
+        </TouchableOpacity>
+
         {loading ? (
           <ActivityIndicator size="large" style={{ marginTop: 20 }} />
         ) : weatherData &&
@@ -186,13 +207,14 @@ export default function App() {
             </Text>
 
             <Weather
-              temperatures={weatherData.temperature_2m}
+              temperatures={convertTemperatureArray(weatherData.temperature_2m, temperatureUnit)}
               currentTime={new Date().getHours()}
+              temperatureUnit={temperatureUnit}
               style={{ marginLeft: 0, marginRight: 0, marginTop: 20 }}
             />
 
             <Text style={{ color: "aqua" }}>
-              {weatherData?.temperature_2m.map((t) => t.toFixed(1)).join("  ")}
+              {convertTemperatureArray(weatherData?.temperature_2m, temperatureUnit).map((t) => t.toFixed(1)).join("  ")}°{temperatureUnit}
             </Text>
           </>
         ) : (

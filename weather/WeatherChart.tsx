@@ -10,6 +10,8 @@ export interface WeatherChartProps {
   height?: number;
   /** Current time as hour index */
   currentTime: number;
+  /** Temperature unit for display */
+  temperatureUnit?: 'C' | 'F';
 }
 
 function formatHour(hour: number) {
@@ -58,6 +60,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   temperatures,
   height = 160,
   currentTime,
+  temperatureUnit = 'C'
 }) => {
   const [viewWidth, setViewWidth] = React.useState<number>(350); // Default width
   
@@ -168,7 +171,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
               y={label.y + 4}
               {...chartStyles.yAxisLabel}
             >
-              {label.value}°
+              {label.value}°{temperatureUnit}
             </SvgText>
           </React.Fragment>
         ))}
@@ -269,10 +272,10 @@ const WEB_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 
 
 const chartStyles = {
   yAxisLabel: {
-    fontSize: '13',
-    ...(Platform.OS === 'web' && { fontFamily: WEB_FONT_FAMILY }),
-    fill: TEXT_COLOR,
+    fontSize: '11',  // Increase from current size
+    fill: '#FFFFFF',  // White color instead of gray
     textAnchor: 'start' as const,
+    fontWeight: 'bold',  // Make it bold
   },
   xAxisLabel: {
     fontSize: '13',
