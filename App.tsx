@@ -77,6 +77,19 @@ export default function App() {
 
       setWeatherData(filteredData);
       console.log("Filtered temperatures:", filteredData.temperature_2m);
+      console.log("Raw API temperatures:", fullData.temperature_2m?.slice(0, 5));
+      console.log("Filtered temperatures:", filteredData.temperature_2m?.slice(0, 5));
+
+      // After setting filtered data, add:
+      console.log("Before conversion:", filteredData.temperature_2m);
+      const convertedTemps = convertTemperatureArray(filteredData.temperature_2m, temperatureUnit);
+      console.log("After conversion:", convertedTemps);
+      console.log("Any NaN values?", convertedTemps.some(t => isNaN(t)));
+
+      // Debugging precipitation values
+      console.log("Raw API precipitation:", fullData.precipitation?.slice(0, 10));
+      console.log("Filtered API precipitation:", filteredData.precipitation?.slice(0, 10));
+      console.log("All precipitation values:", filteredData.precipitation);
     } catch (error) {
       Alert.alert("Error", "Failed to get weather");
     } finally {
@@ -131,14 +144,31 @@ export default function App() {
   };
 
   const convertTemperature = (temp: number, unit: 'C' | 'F'): number => {
+    // Check if temp is a valid number
+    if (typeof temp !== 'number' || isNaN(temp)) {
+      return 0; // Return 0 instead of NaN
+    }
+    
     if (unit === 'F') {
       return (temp * 9/5) + 32;
     }
     return temp;
   };
 
-  const convertTemperatureArray = (temps: number[], unit: 'C' | 'F'): number[] => {
-    return temps.map(temp => convertTemperature(temp, unit));
+  const convertTemperatureArray = (temps: number[] | undefined, unit: 'C' | 'F'): number[] => {
+    // Check if temps array exists and has valid data
+    if (!temps || !Array.isArray(temps)) {
+      return []; // Return empty array if no data
+    }
+    
+    return temps.map(temp => {
+      // Filter out invalid values
+      if (typeof temp !== 'number' || isNaN(temp)) {
+        console.warn('Invalid temperature value:', temp);
+        return null; // Return null for invalid values
+      }
+      return convertTemperature(temp, unit);
+    }).filter((temp): temp is number => temp !== null); // Remove null values, keep valid numbers including 0
   };
 
   useEffect(() => {
@@ -176,15 +206,6 @@ export default function App() {
           <Text style={styles.buttonText}>📍 My location</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.gpsButton} 
-          onPress={() => setTemperatureUnit(temperatureUnit === 'C' ? 'F' : 'C')}
-        >
-          <Text style={styles.buttonText}>
-            🌡️ Switch to °{temperatureUnit === 'C' ? 'F' : 'C'}
-          </Text>
-        </TouchableOpacity>
-
         {loading ? (
           <ActivityIndicator size="large" style={{ marginTop: 20 }} />
         ) : weatherData &&
@@ -208,14 +229,12 @@ export default function App() {
 
             <Weather
               temperatures={convertTemperatureArray(weatherData.temperature_2m, temperatureUnit)}
+              precipitation={weatherData.precipitation}
               currentTime={new Date().getHours()}
               temperatureUnit={temperatureUnit}
+              onTemperatureUnitChange={setTemperatureUnit}
               style={{ marginLeft: 0, marginRight: 0, marginTop: 20 }}
             />
-
-            <Text style={{ color: "aqua" }}>
-              {convertTemperatureArray(weatherData?.temperature_2m, temperatureUnit).map((t) => t.toFixed(1)).join("  ")}°{temperatureUnit}
-            </Text>
           </>
         ) : (
           <Text style={styles.error}>No data</Text>
