@@ -28,10 +28,10 @@ export default WeatherNow;
 
 const styles = StyleSheet.create({
   container: {
-    width: 60,
+    width: 65,
     alignItems: 'flex-start',
     paddingTop: 10,
-    marginRight: 20,
+    marginRight: 10,
   },
   iconContainer: { marginBottom: 8 },
   currentTemp: {

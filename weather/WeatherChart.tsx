@@ -17,7 +17,7 @@ function formatHour(hour: number) {
   return date.toLocaleTimeString([], { hour: 'numeric' });
 }
 
-// Helper function to create smooth curve using cubic bezier
+// Helper function to create smooth curve using cubic bezier with improved control points
 function createSmoothPath(points: { x: number; y: number }[]): string {
   if (points.length < 2) return '';
 
@@ -26,12 +26,19 @@ function createSmoothPath(points: { x: number; y: number }[]): string {
   for (let i = 1; i < points.length; i++) {
     const prev = points[i - 1];
     const curr = points[i];
+    
+    // Get surrounding points for better control point calculation
+    const prevPrev = points[i - 2] || prev;
     const next = points[i + 1] || curr;
     
-    // Calculate control points for smooth curve
-    const tension = 0.3;
-    const cp1x = prev.x + (curr.x - (points[i - 2]?.x || prev.x)) * tension;
-    const cp1y = prev.y + (curr.y - (points[i - 2]?.y || prev.y)) * tension;
+    // Calculate control points using Catmull-Rom spline approach
+    const tension = 0.2; // Reduced for smoother curves
+    
+    // Control point 1 (from previous point)
+    const cp1x = prev.x + (curr.x - prevPrev.x) * tension;
+    const cp1y = prev.y + (curr.y - prevPrev.y) * tension;
+    
+    // Control point 2 (to current point)
     const cp2x = curr.x - (next.x - prev.x) * tension;
     const cp2y = curr.y - (next.y - prev.y) * tension;
     
@@ -65,19 +72,22 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   const processedData = React.useMemo(() => {
     if (!temperatures?.length) return null;
     
-    // Smooth the temperatures using a simple moving average
+    // Apply Gaussian smoothing for better curve quality
     const smoothedTemps = temperatures.map((_, i) => {
-      const windowSize = 3;
+      const windowSize = 5; // Increased window size
       const halfWindow = Math.floor(windowSize / 2);
-      let sum = 0;
-      let count = 0;
+      let weightedSum = 0;
+      let totalWeight = 0;
       
       for (let j = Math.max(0, i - halfWindow); j <= Math.min(temperatures.length - 1, i + halfWindow); j++) {
-        sum += temperatures[j];
-        count++;
+        // Gaussian weight (approximate)
+        const distance = Math.abs(i - j);
+        const weight = Math.exp(-0.5 * Math.pow(distance / (windowSize / 3), 2));
+        weightedSum += temperatures[j] * weight;
+        totalWeight += weight;
       }
       
-      return sum / count;
+      return weightedSum / totalWeight;
     });
     
     const minTemp = Math.min(...smoothedTemps);

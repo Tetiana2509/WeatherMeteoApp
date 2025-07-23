@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
   weatherRow: {
     flexDirection: 'row',
     marginLeft: 40,
-    marginRight: 20,
+    marginRight: 25,
     marginBottom: 16
   },
 });
