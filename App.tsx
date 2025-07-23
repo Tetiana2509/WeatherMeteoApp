@@ -19,6 +19,7 @@ export default function App() {
   const [weatherData, setWeatherData] = useState<HourlyWeather | null>(null);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("Berlin");
+  const [dataType, setDataType] = useState<'temperature' | 'precipitation'>('temperature');
   const [lastCoords, setLastCoords] = useState<{
     lat: number;
     lon: number;
@@ -164,6 +165,39 @@ export default function App() {
           <Text style={styles.buttonText}>📍 My location</Text>
         </TouchableOpacity>
 
+        {/* Data Type Toggle */}
+        <View style={styles.dataTypeContainer}>
+          <TouchableOpacity
+            style={[
+              styles.dataTypeButton,
+              dataType === 'temperature' && styles.activeDataTypeButton
+            ]}
+            onPress={() => setDataType('temperature')}
+          >
+            <Text style={[
+              styles.dataTypeButtonText,
+              dataType === 'temperature' && styles.activeDataTypeButtonText
+            ]}>
+              🌡️ Temperature
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[
+              styles.dataTypeButton,
+              dataType === 'precipitation' && styles.activeDataTypeButton
+            ]}
+            onPress={() => setDataType('precipitation')}
+          >
+            <Text style={[
+              styles.dataTypeButtonText,
+              dataType === 'precipitation' && styles.activeDataTypeButtonText
+            ]}>
+              🌧️ Rain
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {loading ? (
           <ActivityIndicator size="large" style={{ marginTop: 20 }} />
         ) : weatherData &&
@@ -186,13 +220,16 @@ export default function App() {
             </Text>
 
             <Weather
-              temperatures={weatherData.temperature_2m}
+              temperatures={dataType === 'temperature' ? weatherData.temperature_2m : weatherData.precipitation}
               currentTime={new Date().getHours()}
               style={{ marginLeft: 0, marginRight: 0, marginTop: 20 }}
             />
 
             <Text style={{ color: "aqua" }}>
-              {weatherData?.temperature_2m.map((t) => t.toFixed(1)).join("  ")}
+              {dataType === 'temperature' 
+                ? weatherData?.temperature_2m.map((t) => t.toFixed(1)).join("  ")
+                : weatherData?.precipitation.map((p) => p.toFixed(1)).join("  ")
+              }
             </Text>
           </>
         ) : (
@@ -251,4 +288,29 @@ const styles = StyleSheet.create({
     color: "#EEE",
   },
   error: { color: "red", textAlign: "center" },
+  dataTypeContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 8,
+    padding: 2,
+  },
+  dataTypeButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  activeDataTypeButton: {
+    backgroundColor: '#007AFF',
+  },
+  dataTypeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#8E8E93',
+  },
+  activeDataTypeButtonText: {
+    color: '#FFFFFF',
+  },
 });
