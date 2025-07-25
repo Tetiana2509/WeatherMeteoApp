@@ -7,13 +7,13 @@ import WeatherChart from './WeatherChart';
 type WeatherProps = {
   height?: number;
   currentTime: number;
-  temperatures?: number[];
+  data?: number[];
   style?: ViewStyle;
 };
 
-export default function Weather({ height, currentTime, temperatures, style }: WeatherProps) {
-  // 24h temperatures + 1: 95014, July 7, 2025 
-  temperatures ??= [
+export default function Weather({ height, currentTime, data, style }: WeatherProps) {
+  // 24h default data values
+  data ??= [
     59, 59, 57, 57, 57, 55, 55, 57, 61, 63, 68, 72,
     75, 79, 79, 79, 79, 79, 75, 73, 68, 64, 64, 63,
     62
@@ -29,12 +29,12 @@ export default function Weather({ height, currentTime, temperatures, style }: We
             color="#FFD94B"
           />
         }
-        currentTemp={temperatures[Math.floor(currentTime)]}
-        highTemp={Math.max(...temperatures)}
-        lowTemp={Math.min(...temperatures)}
+        currentTemp={data[Math.floor(currentTime)]}
+        highTemp={Math.max(...data)}
+        lowTemp={Math.min(...data)}
       />
       <WeatherChart
-        temperatures={temperatures}
+        data={data}
         height={height}
         currentTime={currentTime}
       />

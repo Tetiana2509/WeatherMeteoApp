@@ -219,8 +219,8 @@ export default function App() {
               })}
             </Text>
 
-            <Weather
-              temperatures={dataType === 'temperature' ? weatherData.temperature_2m : weatherData.precipitation}
+                        <Weather
+              data={dataType === 'temperature' ? weatherData.temperature_2m : weatherData.precipitation}
               currentTime={new Date().getHours()}
               style={{ marginLeft: 0, marginRight: 0, marginTop: 20 }}
             />

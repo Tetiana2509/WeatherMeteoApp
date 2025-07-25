@@ -4,8 +4,8 @@ import { View, StyleSheet, Text, Platform } from 'react-native';
 import Svg, { Path, Circle, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 
 export interface WeatherChartProps {
-  /** 24 hourly temperatures, index 0 = 00:00, index 23 = 23:00 */
-  temperatures: number[];
+  /** 24 hourly data values, index 0 = 00:00, index 23 = 23:00 */
+  data: number[];
   /** Optional chart height */
   height?: number;
   /** Current time as hour index */
@@ -62,40 +62,40 @@ function createAreaPath(points: { x: number; y: number }[], chartHeight: number,
 }
 
 const WeatherChart: React.FC<WeatherChartProps> = ({
-  temperatures,
+  data,
   height = 160,
   currentTime,
 }) => {
   const [viewWidth, setViewWidth] = React.useState<number>(350); // Default width
   
-  // Process temperature data
+  // Process data
   const processedData = React.useMemo(() => {
-    if (!temperatures?.length) return null;
+    if (!data?.length) return null;
     
     // Apply Gaussian smoothing for better curve quality
-    const smoothedTemps = temperatures.map((_, i) => {
+    const smoothedData = data.map((_, i) => {
       const windowSize = 5; // Increased window size
       const halfWindow = Math.floor(windowSize / 2);
       let weightedSum = 0;
       let totalWeight = 0;
       
-      for (let j = Math.max(0, i - halfWindow); j <= Math.min(temperatures.length - 1, i + halfWindow); j++) {
+      for (let j = Math.max(0, i - halfWindow); j <= Math.min(data.length - 1, i + halfWindow); j++) {
         // Gaussian weight (approximate)
         const distance = Math.abs(i - j);
         const weight = Math.exp(-0.5 * Math.pow(distance / (windowSize / 3), 2));
-        weightedSum += temperatures[j] * weight;
+        weightedSum += data[j] * weight;
         totalWeight += weight;
       }
       
       return weightedSum / totalWeight;
     });
     
-    const minTemp = Math.min(...smoothedTemps);
-    const maxTemp = Math.max(...smoothedTemps);
-    const tempRange = maxTemp - minTemp;
-    const padding = tempRange * 0.1; // 10% padding
-    const chartMin = minTemp - padding;
-    const chartMax = maxTemp + padding;
+    const minValue = Math.min(...smoothedData);
+    const maxValue = Math.max(...smoothedData);
+    const valueRange = maxValue - minValue;
+    const padding = valueRange * 0.1; // 10% padding
+    const chartMin = minValue - padding;
+    const chartMax = maxValue + padding;
     const chartRange = chartMax - chartMin;
     
     // Create chart dimensions
@@ -104,13 +104,13 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     const strokeWidth = 5; // Chart curve thickness
     const curveHorizontalPadding = strokeWidth / 2;
     const availableChartWidth = chartWidth - (curveHorizontalPadding * 2);
-    const stepX = availableChartWidth / Math.max(1, temperatures.length - 1);
+    const stepX = availableChartWidth / Math.max(1, data.length - 1);
     
     // Create points for the curve
-    const points = smoothedTemps.map((temp, i) => ({
+    const points = smoothedData.map((value, i) => ({
       x: LEFT_PADDING + curveHorizontalPadding + (i * stepX),
-      y: TOP_PADDING + (chartMax - temp) / chartRange * chartHeight,
-      temp,
+      y: TOP_PADDING + (chartMax - value) / chartRange * chartHeight,
+      value,
       hour: i
     }));
     
@@ -129,17 +129,17 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
       yLabels,
       chartWidth,
       chartHeight,
-      minTemp: chartMin,
-      maxTemp: chartMax,
+      minValue: chartMin,
+      maxValue: chartMax,
       currentHour: Math.round(currentTime)
     };
-  }, [temperatures, viewWidth, height, currentTime]);
+  }, [data, viewWidth, height, currentTime]);
 
-  if (!temperatures?.length || !processedData) {
+  if (!data?.length || !processedData) {
     return (
       <View style={[{ height }, styles.container]}>
         <Text style={styles.placeholder}>
-          {!temperatures?.length ? 'No data available' : 'Loading chart...'}
+          {!data?.length ? 'No data available' : 'Loading chart...'}
         </Text>
       </View>
     );
@@ -160,7 +160,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     >
       <Svg width={svgWidth} height={svgHeight}>
         <Defs>
-          <LinearGradient id="temperatureGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <LinearGradient id="dataGradient" x1="0%" y1="0%" x2="0%" y2="100%">
             <Stop offset="0%" stopColor="#ffdd44" stopOpacity="0.7" />
             <Stop offset="100%" stopColor={CHART_COLOR} stopOpacity="0.3" />
           </LinearGradient>
@@ -186,7 +186,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
         {/* Area fill */}
         <Path
           d={areaPath}
-          fill="url(#temperatureGradient)"
+          fill="url(#dataGradient)"
         />
         
         {/* Temperature curve */}
