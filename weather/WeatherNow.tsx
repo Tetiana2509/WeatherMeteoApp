@@ -8,6 +8,8 @@ interface WeatherNowProps {
   currentTemp: number;
   highTemp: number;
   lowTemp: number;
+  dataType?: 'temperature' | 'precipitation';
+  temperatureUnit?: 'celsius' | 'fahrenheit';
 }
 
 const WeatherNow: React.FC<WeatherNowProps> = ({
@@ -15,14 +17,28 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
   currentTemp,
   highTemp,
   lowTemp,
-}) => (
-  <View style={styles.container}>
-    <View style={styles.iconContainer}>{icon}</View>
-    <MadoText style={styles.currentTemp} numberOfLines={1} adjustsFontSizeToFit>{currentTemp}°</MadoText>
-    <MadoText style={styles.tempRange}>H {highTemp}°</MadoText>
-    <MadoText style={styles.tempRange}>L {lowTemp}°</MadoText>
-  </View>
-);
+  dataType = 'temperature',
+  temperatureUnit = 'celsius',
+}) => {
+  // Функция для форматирования единиц измерения
+  const formatValue = (value: number): string => {
+    if (dataType === 'precipitation') {
+      return `${value.toFixed(1)}mm`;
+    }
+    return `${Math.round(value)}°`;
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.iconContainer}>{icon}</View>
+      <MadoText style={styles.currentTemp} numberOfLines={1} adjustsFontSizeToFit>
+        {formatValue(currentTemp)}
+      </MadoText>
+      <MadoText style={styles.tempRange}>H {formatValue(highTemp)}</MadoText>
+      <MadoText style={styles.tempRange}>L {formatValue(lowTemp)}</MadoText>
+    </View>
+  );
+};
 
 export default WeatherNow;
 

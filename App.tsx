@@ -20,6 +20,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("Berlin");
   const [dataType, setDataType] = useState<'temperature' | 'precipitation'>('temperature');
+  const [temperatureUnit, setTemperatureUnit] = useState<'celsius' | 'fahrenheit'>('celsius');
   const [lastCoords, setLastCoords] = useState<{
     lat: number;
     lon: number;
@@ -27,6 +28,16 @@ export default function App() {
 
   // Initialize cache hook with 5-minute TTL
   const weatherCache = useCache<HourlyWeather>({ ttlMinutes: 5 });
+  
+  // Temperature conversion functions
+  const celsiusToFahrenheit = (celsius: number): number => (celsius * 9/5) + 32;
+  const convertTemperatureData = (tempData: number[]): number[] => {
+    if (temperatureUnit === 'fahrenheit') {
+      return tempData.map(temp => celsiusToFahrenheit(temp));
+    }
+    return tempData;
+  };
+  
   const fetchWeather = async (lat: number, lon: number, forceRefresh: boolean = false) => {
     setLoading(true);
     try {
@@ -36,6 +47,11 @@ export default function App() {
         forceRefresh
       );
 
+      // Validate API data
+      if (!fullData || !fullData.time || !Array.isArray(fullData.time) || fullData.time.length === 0) {
+        throw new Error("Invalid weather data received from API");
+      }
+
       const today = new Date().toISOString().split("T")[0];
 
       // Log the first few times for debugging
@@ -44,7 +60,7 @@ export default function App() {
 
       let filteredIndices = fullData.time
         .map((time, index) => ({ time, index }))
-        .filter(({ time }) => time.startsWith(today))
+        .filter(({ time }) => time && time.startsWith(today))
         .map(({ index }) => index);
 
       // Fallback: if no data for today, use the first 24 hours
@@ -60,25 +76,38 @@ export default function App() {
         return;
       }
 
-      const filteredData: HourlyWeather = {
-        time: filteredIndices.map((i) => fullData.time[i]),
-        temperature_2m: filteredIndices.map((i) => fullData.temperature_2m[i]),
-        apparent_temperature: filteredIndices.map(
-          (i) => fullData.apparent_temperature[i]
-        ),
-        relative_humidity_2m: filteredIndices.map(
-          (i) => fullData.relative_humidity_2m[i]
-        ),
-        precipitation: filteredIndices.map((i) => fullData.precipitation[i]),
-        weathercode: filteredIndices.map((i) => fullData.weathercode[i]),
-        sunrise: fullData.sunrise,
-        sunset: fullData.sunset,
+      // Helper function to safely get numeric value or fallback
+      const safeGetNumber = (array: number[], index: number, fallback: number = 0): number => {
+        const value = array?.[index];
+        return (typeof value === 'number' && !isNaN(value)) ? value : fallback;
       };
+
+      // Create filtered data with validation
+      const filteredData: HourlyWeather = {
+        time: filteredIndices.map((i) => fullData.time[i] || ''),
+        temperature_2m: filteredIndices.map((i) => safeGetNumber(fullData.temperature_2m, i, 15)),
+        apparent_temperature: filteredIndices.map((i) => safeGetNumber(fullData.apparent_temperature, i, 15)),
+        relative_humidity_2m: filteredIndices.map((i) => safeGetNumber(fullData.relative_humidity_2m, i, 50)),
+        precipitation: filteredIndices.map((i) => safeGetNumber(fullData.precipitation, i, 0)),
+        weathercode: filteredIndices.map((i) => safeGetNumber(fullData.weathercode, i, 0)),
+        sunrise: fullData.sunrise || [],
+        sunset: fullData.sunset || [],
+      };
+
+      // Final validation - ensure we have valid temperature data
+      const hasValidTemperatures = filteredData.temperature_2m.some(temp => 
+        typeof temp === 'number' && !isNaN(temp) && temp > -100 && temp < 100
+      );
+
+      if (!hasValidTemperatures) {
+        throw new Error("No valid temperature data available");
+      }
 
       setWeatherData(filteredData);
       console.log("Filtered temperatures:", filteredData.temperature_2m);
     } catch (error) {
-      Alert.alert("Error", "Failed to get weather");
+      console.error("Weather fetch error:", error);
+      Alert.alert("Error", error instanceof Error ? error.message : "Failed to get weather");
     } finally {
       setLoading(false);
     }
@@ -198,6 +227,41 @@ export default function App() {
           </TouchableOpacity>
         </View>
 
+        {/* Temperature Unit Toggle - показывается только для температуры */}
+        {dataType === 'temperature' && (
+          <View style={styles.temperatureUnitContainer}>
+            <TouchableOpacity
+              style={[
+                styles.unitButton,
+                temperatureUnit === 'celsius' && styles.activeUnitButton
+              ]}
+              onPress={() => setTemperatureUnit('celsius')}
+            >
+              <Text style={[
+                styles.unitButtonText,
+                temperatureUnit === 'celsius' && styles.activeUnitButtonText
+              ]}>
+                °C
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.unitButton,
+                temperatureUnit === 'fahrenheit' && styles.activeUnitButton
+              ]}
+              onPress={() => setTemperatureUnit('fahrenheit')}
+            >
+              <Text style={[
+                styles.unitButtonText,
+                temperatureUnit === 'fahrenheit' && styles.activeUnitButtonText
+              ]}>
+                °F
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {loading ? (
           <ActivityIndicator size="large" style={{ marginTop: 20 }} />
         ) : weatherData &&
@@ -220,15 +284,26 @@ export default function App() {
             </Text>
 
                         <Weather
-              data={dataType === 'temperature' ? weatherData.temperature_2m : weatherData.precipitation}
+              data={dataType === 'temperature' 
+                ? convertTemperatureData(weatherData.temperature_2m?.map(t => typeof t === 'number' && !isNaN(t) ? t : 20) || [])
+                : weatherData.precipitation?.map(p => typeof p === 'number' && !isNaN(p) ? p : 0) || []
+              }
               currentTime={new Date().getHours()}
               style={{ marginLeft: 0, marginRight: 0, marginTop: 20 }}
+              dataType={dataType}
+              temperatureUnit={temperatureUnit}
             />
 
             <Text style={{ color: "aqua" }}>
               {dataType === 'temperature' 
-                ? weatherData?.temperature_2m.map((t) => t.toFixed(1)).join("  ")
-                : weatherData?.precipitation.map((p) => p.toFixed(1)).join("  ")
+                ? convertTemperatureData(weatherData?.temperature_2m || []).map((t) => {
+                    const value = typeof t === 'number' && !isNaN(t) ? t : 0;
+                    return value.toFixed(1);
+                  }).join("  ")
+                : weatherData?.precipitation.map((p) => {
+                    const value = typeof p === 'number' && !isNaN(p) ? p : 0;
+                    return value.toFixed(1);
+                  }).join("  ")
               }
             </Text>
           </>
@@ -311,6 +386,31 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
   },
   activeDataTypeButtonText: {
+    color: '#FFFFFF',
+  },
+  temperatureUnitContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 6,
+    padding: 2,
+    alignSelf: 'center',
+  },
+  unitButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 4,
+    marginHorizontal: 1,
+  },
+  activeUnitButton: {
+    backgroundColor: '#007AFF',
+  },
+  unitButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8E8E93',
+  },
+  activeUnitButtonText: {
     color: '#FFFFFF',
   },
 });

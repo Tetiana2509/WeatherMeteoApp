@@ -10,6 +10,8 @@ export interface WeatherChartProps {
   height?: number;
   /** Current time as hour index */
   currentTime: number;
+  /** Function to format units (e.g., temperature or precipitation) */
+  formatUnit?: (value: number) => string;
 }
 
 function formatHour(hour: number) {
@@ -65,6 +67,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   data,
   height = 160,
   currentTime,
+  formatUnit = (value: number) => `${Math.round(value)}°`, // Default temperature format
 }) => {
   const [viewWidth, setViewWidth] = React.useState<number>(350); // Default width
   
@@ -178,7 +181,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
               y={label.y + 4}
               {...chartStyles.yAxisLabel}
             >
-              {label.value}°
+              {formatUnit(label.value)}
             </SvgText>
           </React.Fragment>
         ))}
