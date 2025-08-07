@@ -28,15 +28,23 @@ export default function App() {
 
   // Initialize cache hook with 5-minute TTL
   const weatherCache = useCache<HourlyWeather>({ ttlMinutes: 5 });
-  
-  // Temperature conversion functions
-  const celsiusToFahrenheit = (celsius: number): number => (celsius * 9/5) + 32;
-  const convertTemperatureData = (tempData: number[]): number[] => {
-    if (temperatureUnit === 'fahrenheit') {
-      return tempData.map(temp => celsiusToFahrenheit(temp));
-    }
-    return tempData;
-  };
+
+  // select data to use
+  const selectedData = 
+    weatherData == null ? [] : 
+    dataType === 'precipitation' ? weatherData.precipitation : 
+    weatherData.temperature_2m;
+
+  // verify data
+  let convertedData = selectedData;
+  if (selectedData.find(n => typeof n !== 'number' || isNaN(n))) {
+    console.error("Invalid data set:", selectedData);
+    convertedData = [];
+  } else if (temperatureUnit === 'fahrenheit') {
+    // Temperature conversion functions
+    const celsiusToFahrenheit = (celsius: number): number => (celsius * 9/5) + 32;
+    convertedData = selectedData.map(celsiusToFahrenheit);
+  }
   
   const fetchWeather = async (lat: number, lon: number, forceRefresh: boolean = false) => {
     setLoading(true);
@@ -283,11 +291,8 @@ export default function App() {
               })}
             </Text>
 
-                        <Weather
-              data={dataType === 'temperature' 
-                ? convertTemperatureData(weatherData.temperature_2m?.map(t => typeof t === 'number' && !isNaN(t) ? t : 20) || [])
-                : weatherData.precipitation?.map(p => typeof p === 'number' && !isNaN(p) ? p : 0) || []
-              }
+            <Weather
+              data={convertedData}
               currentTime={new Date().getHours()}
               style={{ marginLeft: 0, marginRight: 0, marginTop: 20 }}
               dataType={dataType}
@@ -295,16 +300,7 @@ export default function App() {
             />
 
             <Text style={{ color: "aqua" }}>
-              {dataType === 'temperature' 
-                ? convertTemperatureData(weatherData?.temperature_2m || []).map((t) => {
-                    const value = typeof t === 'number' && !isNaN(t) ? t : 0;
-                    return value.toFixed(1);
-                  }).join("  ")
-                : weatherData?.precipitation.map((p) => {
-                    const value = typeof p === 'number' && !isNaN(p) ? p : 0;
-                    return value.toFixed(1);
-                  }).join("  ")
-              }
+              {convertedData.map(n => n.toFixed(0)).join("  ")}
             </Text>
           </>
         ) : (
