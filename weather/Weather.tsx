@@ -14,9 +14,8 @@ type WeatherProps = {
 };
 
 // Функции для форматирования единиц измерения
-const formatTemperatureCelsius = (value: number): string => `${Math.round(value)}°`;
-const formatTemperatureFahrenheit = (value: number): string => `${Math.round(value)}°`;
-const formatPrecipitation = (value: number): string => `${value.toFixed(1)}mm`;
+const formatTemperature = (value: number): string => `${Math.round(value)}°`;
+const formatPrecipitation = (value: number): string => `${Math.round(value)} mm`;
 
 export default function Weather({ height, currentTime, data, style, dataType = 'temperature', temperatureUnit = 'celsius' }: WeatherProps) {
   // Validate and clean the input data
@@ -49,12 +48,7 @@ export default function Weather({ height, currentTime, data, style, dataType = '
     : 0;
 
   // Выбираем правильную функцию форматирования
-  const getFormatFunction = () => {
-    if (dataType === 'temperature') {
-      return temperatureUnit === 'celsius' ? formatTemperatureCelsius : formatTemperatureFahrenheit;
-    }
-    return formatPrecipitation;
-  };
+  const formatData = dataType === 'temperature' ? formatTemperature :  formatPrecipitation;
 
   return (
     <View style={[styles.weatherRow, style]}>
@@ -69,14 +63,13 @@ export default function Weather({ height, currentTime, data, style, dataType = '
         currentTemp={cleanData[Math.floor(safeCurrentTime)]}
         highTemp={Math.max(...cleanData)}
         lowTemp={Math.min(...cleanData)}
-        dataType={dataType}
-        temperatureUnit={temperatureUnit}
+        formatData={formatData}
       />
       <WeatherChart
         data={cleanData}
         height={height}
         currentTime={safeCurrentTime}
-        formatUnit={getFormatFunction()}
+        formatData={formatData}
       />
     </View>
   );

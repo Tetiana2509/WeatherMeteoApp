@@ -8,8 +8,8 @@ interface WeatherNowProps {
   currentTemp: number;
   highTemp: number;
   lowTemp: number;
-  dataType?: 'temperature' | 'precipitation';
-  temperatureUnit?: 'celsius' | 'fahrenheit';
+  /** Function to format units (e.g., temperature or precipitation) */
+  formatData: (value: number) => string;
 }
 
 const WeatherNow: React.FC<WeatherNowProps> = ({
@@ -17,25 +17,16 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
   currentTemp,
   highTemp,
   lowTemp,
-  dataType = 'temperature',
-  temperatureUnit = 'celsius',
+  formatData,
 }) => {
-  // Функция для форматирования единиц измерения
-  const formatValue = (value: number): string => {
-    if (dataType === 'precipitation') {
-      return `${value.toFixed(1)}mm`;
-    }
-    return `${Math.round(value)}°`;
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.iconContainer}>{icon}</View>
       <MadoText style={styles.currentTemp} numberOfLines={1} adjustsFontSizeToFit>
-        {formatValue(currentTemp)}
+        {formatData(currentTemp)}
       </MadoText>
-      <MadoText style={styles.tempRange}>H {formatValue(highTemp)}</MadoText>
-      <MadoText style={styles.tempRange}>L {formatValue(lowTemp)}</MadoText>
+      <MadoText style={styles.tempRange}>H {formatData(highTemp)}</MadoText>
+      <MadoText style={styles.tempRange}>L {formatData(lowTemp)}</MadoText>
     </View>
   );
 };

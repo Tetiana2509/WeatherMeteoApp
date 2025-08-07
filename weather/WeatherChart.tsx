@@ -11,7 +11,7 @@ export interface WeatherChartProps {
   /** Current time as hour index */
   currentTime: number;
   /** Function to format units (e.g., temperature or precipitation) */
-  formatUnit?: (value: number) => string;
+  formatData: (value: number) => string;
 }
 
 function formatHour(hour: number) {
@@ -67,11 +67,10 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   data,
   height = 160,
   currentTime,
-  formatUnit = (value: number) => `${Math.round(value)}°`, // Default temperature format
+  formatData,
 }) => {
   const [viewWidth, setViewWidth] = React.useState<number>(350); // Default width
   
-  // Process data
   const processedData = React.useMemo(() => {
     if (!data?.length) return null;
     
@@ -101,6 +100,11 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     const chartMax = maxValue + padding;
     const chartRange = chartMax - chartMin;
     
+    // Handle edge case where all values are the same (chartRange = 0)
+    const safeChartRange = chartRange === 0 ? 1 : chartRange;
+    const safeChartMin = chartRange === 0 ? minValue - 0.5 : chartMin;
+    const safeChartMax = chartRange === 0 ? maxValue + 0.5 : chartMax;
+    
     // Create chart dimensions
     const chartWidth = viewWidth - Y_AXIS_LABEL_WIDTH - LEFT_PADDING;
     const chartHeight = height - X_AXIS_LABEL_HEIGHT - TOP_PADDING;
@@ -112,7 +116,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     // Create points for the curve
     const points = smoothedData.map((value, i) => ({
       x: LEFT_PADDING + curveHorizontalPadding + (i * stepX),
-      y: TOP_PADDING + (chartMax - value) / chartRange * chartHeight,
+      y: TOP_PADDING + (safeChartMax - value) / safeChartRange * chartHeight,
       value,
       hour: i
     }));
@@ -120,7 +124,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     // Create Y-axis labels
     const yAxisSteps = 5;
     const yLabels = Array.from({ length: yAxisSteps + 1 }, (_, i) => {
-      const value = chartMax - (chartRange * i) / yAxisSteps; // Reverse order: start from max, go to min
+      const value = safeChartMax - (safeChartRange * i) / yAxisSteps; // Reverse order: start from max, go to min
       return {
         value: Math.round(value),
         y: TOP_PADDING + (i * chartHeight) / yAxisSteps
@@ -132,8 +136,8 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
       yLabels,
       chartWidth,
       chartHeight,
-      minValue: chartMin,
-      maxValue: chartMax,
+      minValue: safeChartMin,
+      maxValue: safeChartMax,
       currentHour: Math.round(currentTime)
     };
   }, [data, viewWidth, height, currentTime]);
@@ -155,6 +159,8 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   // Create paths
   const curvePath = createSmoothPath(points);
   const areaPath = createAreaPath(points, chartHeight, TOP_PADDING, chartWidth, LEFT_PADDING);
+
+  console.log({curvePath, areaPath});
 
   return (
     <View
@@ -181,7 +187,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
               y={label.y + 4}
               {...chartStyles.yAxisLabel}
             >
-              {formatUnit(label.value)}
+              {formatData(label.value)}
             </SvgText>
           </React.Fragment>
         ))}
