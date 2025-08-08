@@ -19,7 +19,7 @@ export default function App() {
   const [weatherData, setWeatherData] = useState<HourlyWeather | null>(null);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("Berlin");
-  const [dataType, setDataType] = useState<'temperature' | 'precipitation'>('temperature');
+  const [dataType, setDataType] = useState<'temperature' | 'precipitation' | 'uv_index'>('temperature');
   const [temperatureUnit, setTemperatureUnit] = useState<'celsius' | 'fahrenheit'>('celsius');
   const [lastCoords, setLastCoords] = useState<{
     lat: number;
@@ -33,6 +33,7 @@ export default function App() {
   const selectedData = 
     weatherData == null ? [] : 
     dataType === 'precipitation' ? weatherData.precipitation : 
+    dataType === 'uv_index' ? weatherData.uv_index :
     weatherData.temperature_2m;
 
   // verify data
@@ -40,7 +41,7 @@ export default function App() {
   if (selectedData.find(n => typeof n !== 'number' || isNaN(n))) {
     console.error("Invalid data set:", selectedData);
     convertedData = [];
-  } else if (temperatureUnit === 'fahrenheit') {
+  } else if (dataType === 'temperature' && temperatureUnit === 'fahrenheit') {
     // Temperature conversion functions
     const celsiusToFahrenheit = (celsius: number): number => (celsius * 9/5) + 32;
     convertedData = selectedData.map(celsiusToFahrenheit);
@@ -98,6 +99,7 @@ export default function App() {
         relative_humidity_2m: filteredIndices.map((i) => safeGetNumber(fullData.relative_humidity_2m, i, 50)),
         precipitation: filteredIndices.map((i) => safeGetNumber(fullData.precipitation, i, 0)),
         weathercode: filteredIndices.map((i) => safeGetNumber(fullData.weathercode, i, 0)),
+        uv_index: filteredIndices.map((i) => safeGetNumber(fullData.uv_index, i, 0)),
         sunrise: fullData.sunrise || [],
         sunset: fullData.sunset || [],
       };
@@ -231,6 +233,21 @@ export default function App() {
               dataType === 'precipitation' && styles.activeDataTypeButtonText
             ]}>
               🌧️ Rain
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.dataTypeButton,
+              dataType === 'uv_index' && styles.activeDataTypeButton
+            ]}
+            onPress={() => setDataType('uv_index')}
+          >
+            <Text style={[
+              styles.dataTypeButtonText,
+              dataType === 'uv_index' && styles.activeDataTypeButtonText
+            ]}>
+              ☀️ UV Index
             </Text>
           </TouchableOpacity>
         </View>

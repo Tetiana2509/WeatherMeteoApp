@@ -9,13 +9,14 @@ type WeatherProps = {
   currentTime: number;
   data?: number[];
   style?: ViewStyle;
-  dataType?: 'temperature' | 'precipitation';
+  dataType?: 'temperature' | 'precipitation' | 'uv_index';
   temperatureUnit?: 'celsius' | 'fahrenheit';
 };
 
-// Функции для форматирования единиц измерения
+
 const formatTemperature = (value: number): string => `${Math.round(value)}°`;
 const formatPrecipitation = (value: number): string => `${Math.round(value)} mm`;
+const formatUVIndex = (value: number): string => `${Math.round(value * 10) / 10}`;
 
 export default function Weather({ height, currentTime, data, style, dataType = 'temperature', temperatureUnit = 'celsius' }: WeatherProps) {
   // Validate and clean the input data
@@ -47,8 +48,10 @@ export default function Weather({ height, currentTime, data, style, dataType = '
     ? Math.max(0, Math.min(currentTime, cleanData.length - 1)) 
     : 0;
 
-  // Выбираем правильную функцию форматирования
-  const formatData = dataType === 'temperature' ? formatTemperature :  formatPrecipitation;
+  
+  const formatData = dataType === 'temperature' ? formatTemperature : 
+                     dataType === 'precipitation' ? formatPrecipitation : 
+                     formatUVIndex;
 
   return (
     <View style={[styles.weatherRow, style]}>
