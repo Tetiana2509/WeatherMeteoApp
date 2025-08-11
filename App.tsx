@@ -11,6 +11,7 @@ import {
 import DataTypeSwitch from "./weather/DataTypeSwitch";
 import TemperatureUnitSwitch from "./weather/TemperatureUnitSwitch";
 import ConnectedWeather, { ConnectedWeatherRef } from "./weather/ConnectedWeather";
+import { Ionicons } from '@expo/vector-icons';
 
 export default function App() {
   const [query, setQuery] = useState("Berlin");
@@ -40,24 +41,34 @@ export default function App() {
       <View style={styles.container}>
         <Text style={styles.title}>Today's Weather</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="City, country or postal code"
-          value={query}
-          onChangeText={setQuery}
-        />
-
-        <TouchableOpacity style={styles.button} onPress={handleSearch}>
-          <Text style={styles.buttonText}>🔍 Search</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.updateButton} onPress={handleUpdate}>
-          <Text style={styles.buttonText}>🔄 Update</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.gpsButton} onPress={handleGeolocation}>
-          <Text style={styles.buttonText}>📍 My location</Text>
-        </TouchableOpacity>
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="City, country or postal code"
+            value={query}
+            onChangeText={setQuery}
+            returnKeyType="search"
+            onSubmitEditing={handleSearch}
+          />
+          <View style={styles.iconsContainer}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={handleGeolocation}
+              accessibilityRole="button"
+              accessibilityLabel="Use my location"
+            >
+              <Ionicons name="location" size={22} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={handleUpdate}
+              accessibilityRole="button"
+              accessibilityLabel="Update"
+            >
+              <Ionicons name="refresh" size={22} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Data Type Toggle */}
         <DataTypeSwitch value={dataType} onChange={setDataType} />
@@ -90,6 +101,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: "white",
   },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -97,7 +113,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 44,
     backgroundColor: "#fff",
-    marginBottom: 8,
+    flex: 1,
+    marginRight: 8,
+  },
+  iconsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
+    backgroundColor: "#2C2C2E",
+    padding: 10,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    width: 44,
+    height: 44,
+    marginLeft: 6,
   },
   button: {
     backgroundColor: "#007AFF",
@@ -105,20 +136,6 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     alignItems: "center",
     marginBottom: 10,
-  },
-  updateButton: {
-    backgroundColor: "#FFA500",
-    padding: 12,
-    borderRadius: 25,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  gpsButton: {
-    backgroundColor: "#34C759",
-    padding: 12,
-    borderRadius: 25,
-    alignItems: "center",
-    marginBottom: 20,
   },
   buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
   error: { color: "red", textAlign: "center" },
