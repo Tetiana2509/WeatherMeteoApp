@@ -6,12 +6,13 @@ export interface HourlyWeather {
   precipitation: number[];
   weathercode: number[];
   uv_index: number[];
+  cloudcover: number[];
   sunrise: string[];
   sunset: string[];
 }
 
 export const getHourlyWeather = async (lat: number, lon: number): Promise<HourlyWeather> => {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weathercode,uv_index&daily=sunrise,sunset&timezone=auto`;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weathercode,uv_index,cloudcover&daily=sunrise,sunset&timezone=auto`;
   console.log('Fetching from:', url);
   const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch data');
@@ -26,6 +27,7 @@ export const getHourlyWeather = async (lat: number, lon: number): Promise<Hourly
     precipitation: data.hourly.precipitation,
     weathercode: data.hourly.weathercode,
     uv_index: data.hourly.uv_index,
+    cloudcover: data.hourly.cloudcover,
     sunrise: data.daily.sunrise,
     sunset: data.daily.sunset,
   };

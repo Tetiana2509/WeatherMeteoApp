@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
 
-export type DataType = 'temperature' | 'precipitation' | 'uv_index';
+export type DataType = 'temperature' | 'precipitation' | 'uv_index' | 'clouds';
 
 type Props = {
   value: DataType;
@@ -45,6 +45,18 @@ const DataTypeSwitch: React.FC<Props> = ({ value, onChange, style }) => {
         <View style={styles.labelWrapper}>
           <Text style={[styles.emoji, value === 'uv_index' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>☀️</Text>
           <Text style={[styles.dataTypeButtonText, value === 'uv_index' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>UV Index</Text>
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.dataTypeButton, value === 'clouds' && styles.activeDataTypeButton]}
+        onPress={() => onChange('clouds')}
+        accessibilityRole="button"
+        accessibilityState={{ selected: value === 'clouds' }}
+      >
+        <View style={styles.labelWrapper}>
+          <Text style={[styles.emoji, value === 'clouds' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>☁️</Text>
+          <Text style={[styles.dataTypeButtonText, value === 'clouds' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>Clouds</Text>
         </View>
       </TouchableOpacity>
     </View>

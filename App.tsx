@@ -8,14 +8,14 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import DataTypeSwitch from "./weather/DataTypeSwitch";
+import DataTypeSwitch, { DataType } from "./weather/DataTypeSwitch";
 import TemperatureUnitSwitch from "./weather/TemperatureUnitSwitch";
 import ConnectedWeather, { ConnectedWeatherRef } from "./weather/ConnectedWeather";
 import { Ionicons } from '@expo/vector-icons';
 
 export default function App() {
   const [query, setQuery] = useState("Berlin");
-  const [dataType, setDataType] = useState<'temperature' | 'precipitation' | 'uv_index'>('temperature');
+  const [dataType, setDataType] = useState<DataType>('temperature');
   const [temperatureUnit, setTemperatureUnit] = useState<'celsius' | 'fahrenheit'>('celsius');
   const [coords, setCoords] = useState<{
     lat: number;
@@ -85,6 +85,7 @@ export default function App() {
           temperatureUnit={temperatureUnit}
           coords={coords}
           onCoordsChange={setCoords}
+          onQueryChange={setQuery}
         />
       </View>
     </SafeAreaView>

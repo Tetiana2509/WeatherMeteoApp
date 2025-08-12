@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import * as Location from "expo-location";
 import { getHourlyWeather, HourlyWeather } from "../services/meteoService";
-import { getCoordinatesByQuery } from "../services/geocodingService";
+import { getCoordinatesByQuery, getPlaceNameByCoordinates } from "../services/geocodingService";
 import Weather from "./Weather";
 import { useCache } from "../hooks/useCache";
 import { DataType } from "./DataTypeSwitch";
@@ -19,6 +19,7 @@ type Props = {
   temperatureUnit: TemperatureUnit;
   coords?: { lat: number; lon: number } | null;
   onCoordsChange?: (coords: { lat: number; lon: number }) => void;
+  onQueryChange?: (displayName: string) => void;
 };
 
 export type ConnectedWeatherRef = {
@@ -27,12 +28,13 @@ export type ConnectedWeatherRef = {
   search: (query: string) => Promise<void>;
 };
 
-const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
+const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({ 
   query,
   dataType,
   temperatureUnit,
   coords,
   onCoordsChange,
+  onQueryChange,
 }, ref) => {
   const [weatherData, setWeatherData] = useState<HourlyWeather | null>(null);
   const [loading, setLoading] = useState(false);
@@ -48,8 +50,9 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
   const selectedData =
     weatherData == null ? [] :
       dataType === 'precipitation' ? weatherData.precipitation :
-        dataType === 'uv_index' ? weatherData.uv_index :
-          weatherData.temperature_2m;
+  dataType === 'uv_index' ? weatherData.uv_index :
+  dataType === 'clouds' ? weatherData.cloudcover :
+  weatherData.temperature_2m;
 
   // verify data
   let convertedData = selectedData;
@@ -115,6 +118,7 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
         precipitation: filteredIndices.map((i) => safeGetNumber(fullData.precipitation, i, 0)),
         weathercode: filteredIndices.map((i) => safeGetNumber(fullData.weathercode, i, 0)),
         uv_index: filteredIndices.map((i) => safeGetNumber(fullData.uv_index, i, 0)),
+  cloudcover: filteredIndices.map((i) => safeGetNumber(fullData.cloudcover, i, 0)),
         sunrise: fullData.sunrise || [],
         sunset: fullData.sunset || [],
       };
@@ -160,6 +164,11 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
       };
       setLastCoords(newCoords);
       onCoordsChange?.(newCoords);
+      // Resolve a friendly name and propagate up so the input shows user's place
+      try {
+        const displayName = await getPlaceNameByCoordinates(newCoords.lat, newCoords.lon);
+        onQueryChange?.(displayName);
+      } catch {}
       await fetchWeather(newCoords.lat, newCoords.lon);
     } catch (err) {
       Alert.alert("Error", "Could not determine location");
@@ -182,6 +191,11 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
         );
       setLastCoords(coordinates);
       onCoordsChange?.(coordinates);
+      // Normalize input to a consistent display name
+      try {
+        const name = await getPlaceNameByCoordinates(coordinates.lat, coordinates.lon);
+        onQueryChange?.(name);
+      } catch {}
       await fetchWeather(coordinates.lat, coordinates.lon);
     } catch (err: any) {
       Alert.alert("Search error", err.message);

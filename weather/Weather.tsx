@@ -9,7 +9,7 @@ type WeatherProps = {
   currentTime: number;
   data?: number[];
   style?: ViewStyle;
-  dataType?: 'temperature' | 'precipitation' | 'uv_index';
+  dataType?: 'temperature' | 'precipitation' | 'uv_index' | 'clouds';
   temperatureUnit?: 'celsius' | 'fahrenheit';
 };
 
@@ -17,6 +17,7 @@ type WeatherProps = {
 const formatTemperature = (value: number): string => `${Math.round(value)}°`;
 const formatPrecipitation = (value: number): string => `${Math.round(value)} mm`;
 const formatUVIndex = (value: number): string => `${Math.round(value * 10) / 10}`;
+const formatClouds = (value: number): string => `${Math.round(value)}%`;
 
 export default function Weather({ height, currentTime, data, style, dataType = 'temperature', temperatureUnit = 'celsius' }: WeatherProps) {
   // Validate and clean the input data
@@ -43,14 +44,34 @@ export default function Weather({ height, currentTime, data, style, dataType = '
     return validData;
   }, [data]);
 
+  // Apply the same Gaussian smoothing as WeatherChart so displayed values match the chart
+  const smoothedData = React.useMemo(() => {
+    const src = cleanData;
+    if (!src || src.length === 0) return src;
+    const windowSize = 5;
+    const halfWindow = Math.floor(windowSize / 2);
+    return src.map((_, i) => {
+      let weightedSum = 0;
+      let totalWeight = 0;
+      for (let j = Math.max(0, i - halfWindow); j <= Math.min(src.length - 1, i + halfWindow); j++) {
+        const distance = Math.abs(i - j);
+        const weight = Math.exp(-0.5 * Math.pow(distance / (windowSize / 3), 2));
+        weightedSum += src[j] * weight;
+        totalWeight += weight;
+      }
+      return weightedSum / (totalWeight || 1);
+    });
+  }, [cleanData]);
+
   // Ensure currentTime is valid
   const safeCurrentTime = typeof currentTime === 'number' && !isNaN(currentTime) 
-    ? Math.max(0, Math.min(currentTime, cleanData.length - 1)) 
+    ? Math.max(0, Math.min(currentTime, (smoothedData?.length || cleanData.length) - 1)) 
     : 0;
 
   
-  const formatData = dataType === 'temperature' ? formatTemperature : 
-                     dataType === 'precipitation' ? formatPrecipitation : 
+  const formatData = dataType === 'temperature' ? formatTemperature :
+                     dataType === 'precipitation' ? formatPrecipitation :
+                     dataType === 'clouds' ? formatClouds :
                      formatUVIndex;
 
   return (
@@ -63,13 +84,13 @@ export default function Weather({ height, currentTime, data, style, dataType = '
             color="#FFD94B"
           />
         }
-        currentTemp={cleanData[Math.floor(safeCurrentTime)]}
-        highTemp={Math.max(...cleanData)}
-        lowTemp={Math.min(...cleanData)}
+  currentTemp={(smoothedData || cleanData)[Math.floor(safeCurrentTime)]}
+  highTemp={Math.max(...cleanData)}
+  lowTemp={Math.min(...cleanData)}
         formatData={formatData}
       />
       <WeatherChart
-        data={cleanData}
+  data={cleanData}
         height={height}
         currentTime={safeCurrentTime}
         formatData={formatData}
