@@ -52,3 +52,34 @@ export const getCoordinatesByQuery = async (
     throw error;
   }
 };
+
+export const getPlaceNameByCoordinates = async (
+  lat: number,
+  lon: number
+): Promise<string> => {
+  try {
+    const params = new URLSearchParams({
+      format: 'json',
+      lat: String(lat),
+      lon: String(lon),
+      zoom: '10',
+      addressdetails: '1',
+    });
+
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?${params.toString()}`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    const data = await response.json();
+
+    const address = data?.address || {};
+    const locality = address.city || address.town || address.village || address.hamlet || address.suburb || address.county;
+    const country = address.country;
+    if (locality && country) return `${locality}, ${country}`;
+    if (data?.display_name) return data.display_name as string;
+    return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+  } catch (err) {
+    console.error('Reverse geo error:', err);
+    return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+  }
+};
