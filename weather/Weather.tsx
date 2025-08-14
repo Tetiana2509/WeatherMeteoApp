@@ -55,6 +55,80 @@ export default function Weather({ height, currentTime, data, style, dataType = '
                      dataType === 'clouds' ? formatClouds :
                      formatUVIndex;
 
+  // Choose chart theme based on data type
+  const chartTheme = React.useMemo(() => {
+    switch (dataType) {
+      case 'temperature': {
+        // Apple-like warm gradient: bright orange to cooler yellow and subtle blue base
+        const stops = [
+          { offset: '0%', color: '#FFB300', opacity: 0.95 },   // bright orange at the curve
+          { offset: '30%', color: '#FFD54F', opacity: 0.7 },    // warm yellow
+          { offset: '65%', color: '#81D4FA', opacity: 0.45 },   // light sky
+          { offset: '100%', color: '#4FC3F7', opacity: 0.35 },  // blue base
+        ];
+        return {
+          strokeColor: '#FFB300',
+          gradientTopColor: stops[0].color,
+          gradientBottomColor: stops[stops.length - 1].color,
+          gradientTopOpacity: stops[0].opacity,
+          gradientBottomOpacity: stops[stops.length - 1].opacity,
+          gradientStops: stops,
+        };
+      }
+      case 'precipitation': {
+        // Apple-like rain: pale blue near curve, deepening to dark aqua at base
+        const stops = [
+          { offset: '0%', color: '#B3E5FC', opacity: 0.9 },
+          { offset: '40%', color: '#81D4FA', opacity: 0.7 },
+          { offset: '80%', color: '#4FC3F7', opacity: 0.5 },
+          { offset: '100%', color: '#0288D1', opacity: 0.45 },
+        ];
+        return {
+          strokeColor: '#29B6F6',
+          gradientTopColor: stops[0].color,
+          gradientBottomColor: stops[stops.length - 1].color,
+          gradientTopOpacity: stops[0].opacity,
+          gradientBottomOpacity: stops[stops.length - 1].opacity,
+          gradientStops: stops,
+        };
+      }
+      case 'uv_index': {
+        // Apple-like UV: fresh green to deeper green base
+        const stops = [
+          { offset: '0%', color: '#A5D6A7', opacity: 0.9 },
+          { offset: '45%', color: '#81C784', opacity: 0.7 },
+          { offset: '100%', color: '#43A047', opacity: 0.45 },
+        ];
+        return {
+          strokeColor: '#66BB6A',
+          gradientTopColor: stops[0].color,
+          gradientBottomColor: stops[stops.length - 1].color,
+          gradientTopOpacity: stops[0].opacity,
+          gradientBottomOpacity: stops[stops.length - 1].opacity,
+          gradientStops: stops,
+        };
+      }
+      case 'clouds': {
+        // Apple-like clouds: soft light gray to slate base
+        const stops = [
+          { offset: '0%', color: '#ECEFF1', opacity: 0.9 },
+          { offset: '50%', color: '#CFD8DC', opacity: 0.7 },
+          { offset: '100%', color: '#90A4AE', opacity: 0.45 },
+        ];
+        return {
+          strokeColor: '#90A4AE',
+          gradientTopColor: stops[0].color,
+          gradientBottomColor: stops[stops.length - 1].color,
+          gradientTopOpacity: stops[0].opacity,
+          gradientBottomOpacity: stops[stops.length - 1].opacity,
+          gradientStops: stops,
+        };
+      }
+      default:
+        return undefined as any;
+    }
+  }, [dataType]);
+
   return (
     <View style={[styles.weatherRow, style]}>
       <WeatherNow
@@ -75,6 +149,7 @@ export default function Weather({ height, currentTime, data, style, dataType = '
         height={height}
         currentTime={safeCurrentTime}
         formatData={formatData}
+  theme={chartTheme}
       />
     </View>
   );

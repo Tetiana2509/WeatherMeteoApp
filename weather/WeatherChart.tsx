@@ -12,6 +12,22 @@ export interface WeatherChartProps {
   currentTime: number;
   /** Function to format units (e.g., temperature or precipitation) */
   formatData: (value: number) => string;
+  /**
+   * Theme for the chart (stroke + gradient).
+   * If not provided, defaults will be used.
+   */
+  theme?: {
+    strokeColor: string;
+    gradientTopColor: string;
+    gradientBottomColor: string;
+    gradientTopOpacity?: number;
+    gradientBottomOpacity?: number;
+    gradientStops?: Array<{
+      offset: string | number; // e.g., '0%' or 0.5
+      color: string;
+      opacity?: number;
+    }>;
+  };
 }
 
 function formatHour(hour: number) {
@@ -68,8 +84,31 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   height = 160,
   currentTime,
   formatData,
+  theme,
 }) => {
   const [viewWidth, setViewWidth] = React.useState<number>(350); // Default width
+  const uniqueId = React.useMemo(() => Math.random().toString(36).slice(2), []);
+  const areaGradientId = React.useMemo(() => `areaGradient-${uniqueId}`,[uniqueId]);
+  const resolvedTheme = React.useMemo(() => ({
+    strokeColor: theme?.strokeColor ?? DEFAULT_THEME.strokeColor,
+    gradientTopColor: theme?.gradientTopColor ?? DEFAULT_THEME.gradientTopColor,
+    gradientBottomColor: theme?.gradientBottomColor ?? DEFAULT_THEME.gradientBottomColor,
+    gradientTopOpacity: theme?.gradientTopOpacity ?? DEFAULT_THEME.gradientTopOpacity,
+    gradientBottomOpacity: theme?.gradientBottomOpacity ?? DEFAULT_THEME.gradientBottomOpacity,
+  }), [theme]);
+
+  const gradientStopsElements = React.useMemo(() => {
+    if (theme?.gradientStops && theme.gradientStops.length > 0) {
+      return theme.gradientStops.map((s, idx) => (
+        <Stop key={idx} offset={s.offset as any} stopColor={s.color} stopOpacity={s.opacity ?? 1} />
+      ));
+    }
+    return [
+      <Stop key="0" offset="0%" stopColor={resolvedTheme.gradientTopColor} stopOpacity={resolvedTheme.gradientTopOpacity} />,
+      <Stop key="1" offset="100%" stopColor={resolvedTheme.gradientBottomColor} stopOpacity={resolvedTheme.gradientBottomOpacity} />,
+    ];
+  }, [theme, resolvedTheme]);
+
   
   const processedData = React.useMemo(() => {
     if (!data?.length) return null;
@@ -160,7 +199,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   const curvePath = createSmoothPath(points);
   const areaPath = createAreaPath(points, chartHeight, TOP_PADDING, chartWidth, LEFT_PADDING);
 
-  console.log({curvePath, areaPath});
+  // console.debug({curvePath, areaPath});
 
   return (
     <View
@@ -169,9 +208,8 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     >
       <Svg width={svgWidth} height={svgHeight}>
         <Defs>
-          <LinearGradient id="dataGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <Stop offset="0%" stopColor="#ffdd44" stopOpacity="0.7" />
-            <Stop offset="100%" stopColor={CHART_COLOR} stopOpacity="0.3" />
+          <LinearGradient id={areaGradientId} x1="0%" y1="0%" x2="0%" y2="100%">
+            {gradientStopsElements}
           </LinearGradient>
         </Defs>
         
@@ -195,14 +233,14 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
         {/* Area fill */}
         <Path
           d={areaPath}
-          fill="url(#dataGradient)"
+          fill={`url(#${areaGradientId})`}
         />
         
-        {/* Temperature curve */}
+        {/* Data curve */}
         <Path
           d={curvePath}
           fill="none"
-          stroke={CHART_COLOR}
+          stroke={resolvedTheme.strokeColor}
           strokeWidth="5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -274,8 +312,13 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
 export default WeatherChart;
 
 // Chart styling
-
-const CHART_COLOR = 'skyblue';
+const DEFAULT_THEME = {
+  strokeColor: 'skyblue',
+  gradientTopColor: '#ffdd44',
+  gradientBottomColor: 'skyblue',
+  gradientTopOpacity: 0.7,
+  gradientBottomOpacity: 0.3,
+};
 const DATA_POINT_DIMS = 16;
 const X_AXIS_LABEL_HEIGHT = 20; // Space reserved for X-axis labels at bottom
 const Y_AXIS_LABEL_WIDTH = 30; // Width reserved for Y-axis labels
