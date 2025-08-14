@@ -3,6 +3,7 @@ import { View, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import WeatherNow from './WeatherNow';
 import WeatherChart from './WeatherChart';
+import WeatherBarChart from './WeatherBarChart';
 
 type WeatherProps = {
   height?: number;
@@ -144,13 +145,23 @@ export default function Weather({ height, currentTime, data, style, dataType = '
   lowTemp={Math.min(...cleanData)}
         formatData={formatData}
       />
-      <WeatherChart
-  data={cleanData}
-        height={height}
-        currentTime={safeCurrentTime}
-        formatData={formatData}
-  theme={chartTheme}
-      />
+      {dataType === 'clouds' ? (
+        <WeatherBarChart
+          data={cleanData}
+          height={height}
+          currentTime={safeCurrentTime}
+          formatData={formatData}
+          theme={chartTheme}
+        />
+      ) : (
+        <WeatherChart
+          data={cleanData}
+          height={height}
+          currentTime={safeCurrentTime}
+          formatData={formatData}
+          theme={chartTheme}
+        />
+      )}
     </View>
   );
 }
