@@ -12,6 +12,23 @@ export interface WeatherChartProps {
   currentTime: number;
   /** Function to format units (e.g., temperature or precipitation) */
   formatData: (value: number) => string;
+  /** Whether to apply smoothing to the series (default: true) */
+  smooth?: boolean;
+  /**
+   * Theme for stroke and area gradient. If not provided, defaults are used.
+   */
+  theme?: {
+    strokeColor: string;
+    gradientTopColor: string;
+    gradientBottomColor: string;
+    gradientTopOpacity?: number;
+    gradientBottomOpacity?: number;
+    gradientStops?: Array<{
+      offset: string | number;
+      color: string;
+      opacity?: number;
+    }>;
+  };
 }
 
 function formatHour(hour: number) {
@@ -68,19 +85,41 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   height = 160,
   currentTime,
   formatData,
+  smooth = true,
+  theme,
 }) => {
   const [viewWidth, setViewWidth] = React.useState<number>(350); // Default width
+  const resolvedTheme = React.useMemo(() => ({
+    strokeColor: theme?.strokeColor ?? DEFAULT_THEME.strokeColor,
+    gradientTopColor: theme?.gradientTopColor ?? DEFAULT_THEME.gradientTopColor,
+    gradientBottomColor: theme?.gradientBottomColor ?? DEFAULT_THEME.gradientBottomColor,
+    gradientTopOpacity: theme?.gradientTopOpacity ?? DEFAULT_THEME.gradientTopOpacity,
+    gradientBottomOpacity: theme?.gradientBottomOpacity ?? DEFAULT_THEME.gradientBottomOpacity,
+    gradientStops: theme?.gradientStops,
+  }), [theme]);
+
+  const gradientStopsElements = React.useMemo(() => {
+    if (resolvedTheme.gradientStops && resolvedTheme.gradientStops.length > 0) {
+      return resolvedTheme.gradientStops.map((s, idx) => (
+        <Stop key={idx} offset={s.offset as any} stopColor={s.color} stopOpacity={s.opacity ?? 1} />
+      ));
+    }
+    return [
+      <Stop key="0" offset="0%" stopColor={resolvedTheme.gradientTopColor} stopOpacity={resolvedTheme.gradientTopOpacity} />,
+      <Stop key="1" offset="100%" stopColor={resolvedTheme.gradientBottomColor} stopOpacity={resolvedTheme.gradientBottomOpacity} />,
+    ];
+  }, [resolvedTheme]);
   
   const processedData = React.useMemo(() => {
     if (!data?.length) return null;
-    
-    // Apply Gaussian smoothing for better curve quality
-    const smoothedData = data.map((_, i) => {
+
+    // Optionally apply Gaussian smoothing for better curve quality
+    const series = smooth ? data.map((_, i) => {
       const windowSize = 5; // Increased window size
       const halfWindow = Math.floor(windowSize / 2);
       let weightedSum = 0;
       let totalWeight = 0;
-      
+
       for (let j = Math.max(0, i - halfWindow); j <= Math.min(data.length - 1, i + halfWindow); j++) {
         // Gaussian weight (approximate)
         const distance = Math.abs(i - j);
@@ -88,12 +127,12 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
         weightedSum += data[j] * weight;
         totalWeight += weight;
       }
-      
+
       return weightedSum / totalWeight;
-    });
+    }) : data;
     
-    const minValue = Math.min(...smoothedData);
-    const maxValue = Math.max(...smoothedData);
+    const minValue = Math.min(...series);
+    const maxValue = Math.max(...series);
     const valueRange = maxValue - minValue;
     const padding = valueRange * 0.1; // 10% padding
     const chartMin = minValue - padding;
@@ -114,7 +153,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     const stepX = availableChartWidth / Math.max(1, data.length - 1);
     
     // Create points for the curve
-    const points = smoothedData.map((value, i) => ({
+  const points = series.map((value, i) => ({
       x: LEFT_PADDING + curveHorizontalPadding + (i * stepX),
       y: TOP_PADDING + (safeChartMax - value) / safeChartRange * chartHeight,
       value,
@@ -140,7 +179,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
       maxValue: safeChartMax,
       currentHour: Math.round(currentTime)
     };
-  }, [data, viewWidth, height, currentTime]);
+  }, [data, viewWidth, height, currentTime, smooth]);
 
   if (!data?.length || !processedData) {
     return (
@@ -170,8 +209,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
       <Svg width={svgWidth} height={svgHeight}>
         <Defs>
           <LinearGradient id="dataGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <Stop offset="0%" stopColor="#ffdd44" stopOpacity="0.7" />
-            <Stop offset="100%" stopColor={CHART_COLOR} stopOpacity="0.3" />
+            {gradientStopsElements}
           </LinearGradient>
         </Defs>
         
@@ -198,11 +236,11 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
           fill="url(#dataGradient)"
         />
         
-        {/* Temperature curve */}
+        {/* Data curve */}
         <Path
           d={curvePath}
           fill="none"
-          stroke={CHART_COLOR}
+          stroke={resolvedTheme.strokeColor}
           strokeWidth="5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -274,8 +312,13 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
 export default WeatherChart;
 
 // Chart styling
-
-const CHART_COLOR = 'skyblue';
+const DEFAULT_THEME = {
+  strokeColor: 'skyblue',
+  gradientTopColor: '#ffdd44',
+  gradientBottomColor: 'skyblue',
+  gradientTopOpacity: 0.7,
+  gradientBottomOpacity: 0.3,
+};
 const DATA_POINT_DIMS = 16;
 const X_AXIS_LABEL_HEIGHT = 20; // Space reserved for X-axis labels at bottom
 const Y_AXIS_LABEL_WIDTH = 30; // Width reserved for Y-axis labels

@@ -55,6 +55,66 @@ export default function Weather({ height, currentTime, data, style, dataType = '
                      dataType === 'clouds' ? formatClouds :
                      formatUVIndex;
 
+  // Per-metric chart theme (stroke + area gradient)
+  const chartTheme = React.useMemo(() => {
+    switch (dataType) {
+      case 'temperature':
+        return {
+          strokeColor: '#FFA726',
+          gradientTopColor: '#FFE082',
+          gradientBottomColor: '#4FC3F7',
+          gradientTopOpacity: 0.75,
+          gradientBottomOpacity: 0.35,
+          gradientStops: [
+            { offset: '0%', color: '#FFE082', opacity: 0.85 },
+            { offset: '65%', color: '#81D4FA', opacity: 0.5 },
+            { offset: '100%', color: '#4FC3F7', opacity: 0.35 },
+          ],
+        } as const;
+      case 'precipitation':
+        return {
+          strokeColor: '#29B6F6',
+          gradientTopColor: '#B3E5FC',
+          gradientBottomColor: '#0288D1',
+          gradientTopOpacity: 0.75,
+          gradientBottomOpacity: 0.45,
+          gradientStops: [
+            { offset: '0%', color: '#B3E5FC', opacity: 0.85 },
+            { offset: '60%', color: '#4FC3F7', opacity: 0.55 },
+            { offset: '100%', color: '#0288D1', opacity: 0.45 },
+          ],
+        } as const;
+      case 'uv_index':
+        return {
+          strokeColor: '#66BB6A',
+          gradientTopColor: '#C8E6C9',
+          gradientBottomColor: '#43A047',
+          gradientTopOpacity: 0.75,
+          gradientBottomOpacity: 0.45,
+          gradientStops: [
+            { offset: '0%', color: '#C8E6C9', opacity: 0.85 },
+            { offset: '60%', color: '#81C784', opacity: 0.6 },
+            { offset: '100%', color: '#43A047', opacity: 0.45 },
+          ],
+        } as const;
+      case 'clouds':
+        return {
+          strokeColor: '#90A4AE',
+          gradientTopColor: '#ECEFF1',
+          gradientBottomColor: '#90A4AE',
+          gradientTopOpacity: 0.9,
+          gradientBottomOpacity: 0.45,
+          gradientStops: [
+            { offset: '0%', color: '#ECEFF1', opacity: 0.9 },
+            { offset: '50%', color: '#CFD8DC', opacity: 0.7 },
+            { offset: '100%', color: '#90A4AE', opacity: 0.45 },
+          ],
+        } as const;
+      default:
+        return undefined as any;
+    }
+  }, [dataType]);
+
   return (
     <View style={[styles.weatherRow, style]}>
       <WeatherNow
@@ -71,10 +131,12 @@ export default function Weather({ height, currentTime, data, style, dataType = '
         formatData={formatData}
       />
       <WeatherChart
-  data={cleanData}
+        data={cleanData}
         height={height}
         currentTime={safeCurrentTime}
         formatData={formatData}
+        smooth={dataType !== 'clouds'}
+        theme={chartTheme}
       />
     </View>
   );
