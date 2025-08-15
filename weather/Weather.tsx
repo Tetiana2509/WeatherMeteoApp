@@ -59,22 +59,31 @@ export default function Weather({ height, currentTime, data, style, dataType = '
   const chartTheme = React.useMemo(() => {
     switch (dataType) {
       case 'temperature':
+        // Value-based gradient similar to clouds (unit-aware)
+        const tempStops = temperatureUnit === 'fahrenheit'
+          ? [
+              { value: 104, color: '#FB8C00', opacity: 0.9 },  // 40°C deep orange
+              { value: 86,  color: '#FFA726', opacity: 0.88 },  // 30°C orange
+              { value: 68,  color: '#FDD835', opacity: 0.82 },  // 20°C yellow
+              { value: 50,  color: '#26C6DA', opacity: 0.68 },  // 10°C teal
+              { value: 32,  color: '#1976D2', opacity: 0.62 },  // 0°C strong blue
+              { value: 14,  color: '#0D47A1', opacity: 0.58 },  // -10°C deep blue
+            ]
+          : [
+              { value: 40, color: '#FB8C00', opacity: 0.9 },   // deep orange
+              { value: 30, color: '#FFA726', opacity: 0.88 },   // orange
+              { value: 20, color: '#FDD835', opacity: 0.82 },   // yellow
+              { value: 10, color: '#26C6DA', opacity: 0.68 },   // teal
+              { value: 0,  color: '#1976D2', opacity: 0.62 },   // strong blue at freezing
+              { value: -10, color: '#0D47A1', opacity: 0.58 },  // deep blue below freezing
+            ];
         return {
           strokeColor: '#FFA726',
           gradientTopColor: '#FFE082',
           gradientBottomColor: '#4FC3F7',
-          gradientTopOpacity: 0.75,
-          gradientBottomOpacity: 0.35,
-          // Apple-like warm-to-cool multi-stop vertical gradient for temperature (percent-based)
-          gradientStops: [
-            { offset: '0%', color: '#FFF5C1', opacity: 0.95 },   // soft sunlit yellow
-            { offset: '18%', color: '#FFE082', opacity: 0.9 },   // warm light amber
-            { offset: '36%', color: '#FFB74D', opacity: 0.78 },  // mid orange
-            { offset: '54%', color: '#FFD180', opacity: 0.66 },  // peach transition
-            { offset: '70%', color: '#B3E5FC', opacity: 0.56 },  // pale sky
-            { offset: '85%', color: '#81D4FA', opacity: 0.48 },  // sky blue
-            { offset: '100%', color: '#4FC3F7', opacity: 0.38 }, // deeper sky
-          ],
+          gradientTopOpacity: 0.85,
+          gradientBottomOpacity: 0.4,
+          gradientValueStops: tempStops,
         } as const;
       case 'precipitation':
         return {
@@ -125,7 +134,7 @@ export default function Weather({ height, currentTime, data, style, dataType = '
       default:
         return undefined as any;
     }
-  }, [dataType]);
+  }, [dataType, temperatureUnit]);
 
   return (
     <View style={[styles.weatherRow, style]}>
