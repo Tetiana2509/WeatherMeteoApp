@@ -65,10 +65,15 @@ export default function Weather({ height, currentTime, data, style, dataType = '
           gradientBottomColor: '#4FC3F7',
           gradientTopOpacity: 0.75,
           gradientBottomOpacity: 0.35,
+          // Apple-like warm-to-cool multi-stop vertical gradient for temperature (percent-based)
           gradientStops: [
-            { offset: '0%', color: '#FFE082', opacity: 0.85 },
-            { offset: '65%', color: '#81D4FA', opacity: 0.5 },
-            { offset: '100%', color: '#4FC3F7', opacity: 0.35 },
+            { offset: '0%', color: '#FFF5C1', opacity: 0.95 },   // soft sunlit yellow
+            { offset: '18%', color: '#FFE082', opacity: 0.9 },   // warm light amber
+            { offset: '36%', color: '#FFB74D', opacity: 0.78 },  // mid orange
+            { offset: '54%', color: '#FFD180', opacity: 0.66 },  // peach transition
+            { offset: '70%', color: '#B3E5FC', opacity: 0.56 },  // pale sky
+            { offset: '85%', color: '#81D4FA', opacity: 0.48 },  // sky blue
+            { offset: '100%', color: '#4FC3F7', opacity: 0.38 }, // deeper sky
           ],
         } as const;
       case 'precipitation':
@@ -87,14 +92,18 @@ export default function Weather({ height, currentTime, data, style, dataType = '
       case 'uv_index':
         return {
           strokeColor: '#66BB6A',
-          gradientTopColor: '#C8E6C9',
+          // Apple-like UV gradient: pink (extreme) → orange → yellow → green (low)
+          gradientTopColor: '#EC407A',
           gradientBottomColor: '#43A047',
-          gradientTopOpacity: 0.75,
+          gradientTopOpacity: 0.9,
           gradientBottomOpacity: 0.45,
-          gradientStops: [
-            { offset: '0%', color: '#C8E6C9', opacity: 0.85 },
-            { offset: '60%', color: '#81C784', opacity: 0.6 },
-            { offset: '100%', color: '#43A047', opacity: 0.45 },
+          // Value-based stops: align to UVI bands (>=9 pink, >=6 orange, >=3 yellow, else green)
+          gradientValueStops: [
+            { value: 12, color: '#EC407A', opacity: 0.95 }, // near max/extreme
+            { value: 9, color: '#EC407A', opacity: 0.9 },   // pink band start
+            { value: 6, color: '#FF7043', opacity: 0.85 },  // orange band start
+            { value: 3, color: '#FBC02D', opacity: 0.75 },  // yellow band start
+            { value: 0, color: '#43A047', opacity: 0.55 },  // green to bottom
           ],
         } as const;
       case 'clouds':
@@ -104,10 +113,13 @@ export default function Weather({ height, currentTime, data, style, dataType = '
           gradientBottomColor: '#90A4AE',
           gradientTopOpacity: 0.9,
           gradientBottomOpacity: 0.45,
-          gradientStops: [
-            { offset: '0%', color: '#ECEFF1', opacity: 0.9 },
-            { offset: '50%', color: '#CFD8DC', opacity: 0.7 },
-            { offset: '100%', color: '#90A4AE', opacity: 0.45 },
+          // Value-based gradient: 0% clear (blue) → 100% overcast (gray)
+          gradientValueStops: [
+            { value: 100, color: '#90A4AE', opacity: 0.65 }, // overcast gray (top)
+            { value: 75, color: '#CFD8DC', opacity: 0.6 },   // broken clouds
+            { value: 50, color: '#ECEFF1', opacity: 0.58 },  // scattered → near white
+            { value: 25, color: '#B3E5FC', opacity: 0.52 },  // few clouds, pale blue
+            { value: 0, color: '#4FC3F7', opacity: 0.5 },    // clear sky blue (bottom)
           ],
         } as const;
       default:

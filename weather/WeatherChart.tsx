@@ -28,6 +28,12 @@ export interface WeatherChartProps {
       color: string;
       opacity?: number;
     }>;
+    /** Optional: value-based stops; offsets will be computed from chart min/max so bands align to actual values */
+    gradientValueStops?: Array<{
+      value: number;
+      color: string;
+      opacity?: number;
+    }>;
   };
 }
 
@@ -95,20 +101,10 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     gradientBottomColor: theme?.gradientBottomColor ?? DEFAULT_THEME.gradientBottomColor,
     gradientTopOpacity: theme?.gradientTopOpacity ?? DEFAULT_THEME.gradientTopOpacity,
     gradientBottomOpacity: theme?.gradientBottomOpacity ?? DEFAULT_THEME.gradientBottomOpacity,
-    gradientStops: theme?.gradientStops,
+  gradientStops: theme?.gradientStops,
+  gradientValueStops: theme?.gradientValueStops,
   }), [theme]);
-
-  const gradientStopsElements = React.useMemo(() => {
-    if (resolvedTheme.gradientStops && resolvedTheme.gradientStops.length > 0) {
-      return resolvedTheme.gradientStops.map((s, idx) => (
-        <Stop key={idx} offset={s.offset as any} stopColor={s.color} stopOpacity={s.opacity ?? 1} />
-      ));
-    }
-    return [
-      <Stop key="0" offset="0%" stopColor={resolvedTheme.gradientTopColor} stopOpacity={resolvedTheme.gradientTopOpacity} />,
-      <Stop key="1" offset="100%" stopColor={resolvedTheme.gradientBottomColor} stopOpacity={resolvedTheme.gradientBottomOpacity} />,
-    ];
-  }, [resolvedTheme]);
+  
   
   const processedData = React.useMemo(() => {
     if (!data?.length) return null;
@@ -191,7 +187,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     );
   }
 
-  const { points, yLabels, chartWidth, chartHeight, currentHour } = processedData;
+  const { points, yLabels, chartWidth, chartHeight, currentHour, minValue, maxValue } = processedData;
   const svgWidth = viewWidth;
   const svgHeight = height;
 
@@ -200,6 +196,32 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   const areaPath = createAreaPath(points, chartHeight, TOP_PADDING, chartWidth, LEFT_PADDING);
 
   console.log({curvePath, areaPath});
+
+  // Build gradient stops: prefer value-based thresholds if provided
+  const gradientStopsElements = React.useMemo(() => {
+    const range = Math.max(1, maxValue - minValue);
+    if (resolvedTheme.gradientValueStops && resolvedTheme.gradientValueStops.length > 0) {
+      const mapped = resolvedTheme.gradientValueStops
+        .map(s => {
+          const v = Math.min(Math.max(s.value, minValue), maxValue);
+          const offsetPct = ((maxValue - v) / range) * 100; // 0% at top (max), 100% at bottom (min)
+          return { offset: offsetPct, color: s.color, opacity: s.opacity ?? 1 };
+        })
+        .sort((a, b) => a.offset - b.offset);
+      return mapped.map((s, idx) => (
+        <Stop key={idx} offset={`${s.offset}%`} stopColor={s.color} stopOpacity={s.opacity} />
+      ));
+    }
+    if (resolvedTheme.gradientStops && resolvedTheme.gradientStops.length > 0) {
+      return resolvedTheme.gradientStops.map((s, idx) => (
+        <Stop key={idx} offset={s.offset as any} stopColor={s.color} stopOpacity={s.opacity ?? 1} />
+      ));
+    }
+    return [
+      <Stop key="0" offset="0%" stopColor={resolvedTheme.gradientTopColor} stopOpacity={resolvedTheme.gradientTopOpacity} />,
+      <Stop key="1" offset="100%" stopColor={resolvedTheme.gradientBottomColor} stopOpacity={resolvedTheme.gradientBottomOpacity} />,
+    ];
+  }, [minValue, maxValue, resolvedTheme]);
 
   return (
     <View
