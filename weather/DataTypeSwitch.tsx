@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
 
-export type DataType = 'temperature' | 'precipitation' | 'uv_index' | 'clouds';
+export type DataType = 'temperature' | 'precipitation' | 'uv_index' | 'clouds' | 'brightness';
 
 type Props = {
   value: DataType;
@@ -21,6 +21,18 @@ const DataTypeSwitch: React.FC<Props> = ({ value, onChange, style }) => {
         <View style={styles.labelWrapper}>
           <Text style={[styles.emoji, value === 'temperature' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>🌡️</Text>
           <Text style={[styles.dataTypeButtonText, value === 'temperature' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>Temperature</Text>
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.dataTypeButton, value === 'brightness' && styles.activeDataTypeButton]}
+        onPress={() => onChange('brightness')}
+        accessibilityRole="button"
+        accessibilityState={{ selected: value === 'brightness' }}
+      >
+        <View style={styles.labelWrapper}>
+          <Text style={[styles.emoji, value === 'brightness' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>💡</Text>
+          <Text style={[styles.dataTypeButtonText, value === 'brightness' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>Brightness</Text>
         </View>
       </TouchableOpacity>
 

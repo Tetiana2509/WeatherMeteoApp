@@ -9,7 +9,7 @@ type WeatherProps = {
   currentTime: number;
   data?: number[];
   style?: ViewStyle;
-  dataType?: 'temperature' | 'precipitation' | 'uv_index' | 'clouds';
+  dataType?: 'temperature' | 'precipitation' | 'uv_index' | 'clouds' | 'brightness';
   temperatureUnit?: 'celsius' | 'fahrenheit';
 };
 
@@ -18,6 +18,7 @@ const formatTemperature = (value: number): string => `${Math.round(value)}°`;
 const formatPrecipitation = (value: number): string => `${Math.round(value)} mm`;
 const formatUVIndex = (value: number): string => `${Math.round(value * 10) / 10}`;
 const formatClouds = (value: number): string => `${Math.round(value)}%`;
+const formatBrightness = (value: number): string => `${Math.round(value * 100)}%`;
 
 export default function Weather({ height, currentTime, data, style, dataType = 'temperature', temperatureUnit = 'celsius' }: WeatherProps) {
   // Validate and clean the input data
@@ -53,6 +54,7 @@ export default function Weather({ height, currentTime, data, style, dataType = '
   const formatData = dataType === 'temperature' ? formatTemperature :
                      dataType === 'precipitation' ? formatPrecipitation :
                      dataType === 'clouds' ? formatClouds :
+                     dataType === 'brightness' ? formatBrightness :
                      formatUVIndex;
 
   // Per-metric chart theme (stroke + area gradient)
@@ -129,6 +131,22 @@ export default function Weather({ height, currentTime, data, style, dataType = '
             { value: 50, color: '#ECEFF1', opacity: 0.58 },  // scattered → near white
             { value: 25, color: '#B3E5FC', opacity: 0.52 },  // few clouds, pale blue
             { value: 0, color: '#4FC3F7', opacity: 0.5 },    // clear sky blue (bottom)
+          ],
+        } as const;
+      case 'brightness':
+        return {
+          strokeColor: '#FFD54F',
+          gradientTopColor: '#FFF59D',
+          gradientBottomColor: '#0D47A1',
+          gradientTopOpacity: 0.9,
+          gradientBottomOpacity: 0.5,
+          // For brightness index values 0..1 (value-aligned like UV and Clouds)
+          gradientValueStops: [
+            { value: 1.0, color: '#FFF59D', opacity: 0.95 }, // bright yellow
+            { value: 0.7, color: '#FFD54F', opacity: 0.85 }, // sunlight
+            { value: 0.4, color: '#26C6DA', opacity: 0.65 }, // teal twilight
+            { value: 0.2, color: '#1976D2', opacity: 0.6 },  // blue dusk
+            { value: 0.0, color: '#0D47A1', opacity: 0.55 }, // deep night
           ],
         } as const;
       default:

@@ -9,6 +9,7 @@ import * as Location from "expo-location";
 import { getHourlyWeather, HourlyWeather } from "../services/meteoService";
 import { getCoordinatesByQuery, getPlaceNameByCoordinates } from "../services/geocodingService";
 import Weather from "./Weather";
+import { computeDaylightBrightnessIndexFromArrays } from "../services/brightnessIndex";
 import { useCache } from "../hooks/useCache";
 import { DataType } from "./DataTypeSwitch";
 import { TemperatureUnit } from "./TemperatureUnitSwitch";
@@ -52,6 +53,26 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
       dataType === 'precipitation' ? weatherData.precipitation :
   dataType === 'uv_index' ? weatherData.uv_index :
   dataType === 'clouds' ? weatherData.cloudcover :
+  dataType === 'brightness' ? (() => {
+    // Compute brightness index 0..1 using solar altitude and conditions
+    try {
+      const times = weatherData!.time;
+      const clouds = weatherData!.cloudcover;
+      const precip = weatherData!.precipitation;
+      const codes = weatherData!.weathercode;
+      const lat = lastCoords?.lat ?? 0;
+      const lon = lastCoords?.lon ?? 0;
+      return computeDaylightBrightnessIndexFromArrays(
+        times,
+        clouds,
+        precip,
+        codes,
+        { latitude: lat, longitude: lon, timezoneOffsetMinutes: new Date().getTimezoneOffset() * -1 }
+      );
+    } catch {
+      return [] as number[];
+    }
+  })() :
   weatherData.temperature_2m;
 
   // verify data
@@ -63,6 +84,9 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
     // Temperature conversion functions
     const celsiusToFahrenheit = (celsius: number): number => (celsius * 9 / 5) + 32;
     convertedData = selectedData.map(celsiusToFahrenheit);
+  } else if (dataType === 'brightness') {
+    // ensure 0..1 and numeric
+    convertedData = selectedData.map(v => (typeof v === 'number' && isFinite(v)) ? clamp01(v) : 0);
   }
 
   const fetchWeather = async (lat: number, lon: number, forceRefresh: boolean = false) => {
@@ -268,3 +292,7 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
 });
 
 export default ConnectedWeather;
+
+function clamp01(v: number) {
+  return Math.max(0, Math.min(1, v));
+}
