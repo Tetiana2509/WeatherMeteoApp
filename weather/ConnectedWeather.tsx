@@ -57,18 +57,13 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
     // Compute brightness index 0..1 using solar altitude and conditions
     try {
       const times = weatherData!.time;
-      const clouds = weatherData!.cloudcover;
-      const precip = weatherData!.precipitation;
-      const codes = weatherData!.weathercode;
       const lat = lastCoords?.lat ?? 0;
       const lon = lastCoords?.lon ?? 0;
-      return computeDaylightBrightnessIndexFromArrays(
-        times,
-        clouds,
-        precip,
-        codes,
-        { latitude: lat, longitude: lon, timezoneOffsetMinutes: new Date().getTimezoneOffset() * -1 }
-      );
+      return computeDaylightBrightnessIndexFromArrays(times, {
+        latitude: lat,
+        longitude: lon,
+        timezoneOffsetMinutes: new Date().getTimezoneOffset() * -1,
+      });
     } catch {
       return [] as number[];
     }
@@ -285,7 +280,16 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
       />
 
       <Text style={{ color: "aqua" }}>
-        {convertedData.map(n => n.toFixed(0)).join("  ")}
+        {convertedData
+          .map(n => {
+            if (dataType === 'brightness') {
+              // Show as percent with no decimals to make it readable, but not collapse to 0/1
+              const pct = Math.round(Math.max(0, Math.min(1, n)) * 100);
+              return `${pct}%`;
+            }
+            return n.toFixed(0);
+          })
+          .join("  ")}
       </Text>
     </>
   );

@@ -129,10 +129,12 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     
     const minValue = Math.min(...series);
     const maxValue = Math.max(...series);
-    const valueRange = maxValue - minValue;
-    const padding = valueRange * 0.1; // 10% padding
-    const chartMin = minValue - padding;
-    const chartMax = maxValue + padding;
+  let chartMin: number;
+  let chartMax: number;
+  const valueRange = maxValue - minValue;
+  const padding = valueRange * 0.1; // 10% padding both sides
+  chartMin = minValue - padding;
+  chartMax = maxValue + padding;
     const chartRange = chartMax - chartMin;
     
     // Handle edge case where all values are the same (chartRange = 0)

@@ -8,10 +8,6 @@
 
 export type HourlyInputs = {
   time: Date | string | number; // Date, ISO string, or epoch ms
-  tempC?: number;               // optional, currently unused
-  precipMm?: number;            // precipitation rate (mm/h)
-  cloudCoverPct?: number;       // 0..100
-  weatherCode?: number;         // WMO weather code (Open-Meteo mapping)
 };
 
 export type BrightnessOptions = {
@@ -34,35 +30,9 @@ export function computeDaylightBrightnessIndex(
     const local = new Date(t.getTime() + tzOffset * 60_000);
     const alt = solarAltitudeDeg(local, opts.latitude, opts.longitude, tzOffset);
 
-    // 1) Base daylight from solar altitude (includes twilight before sunrise)
-    const base = daylightFactorFromAltitude(alt);
-
-    // 2) Atmospheric/transmittance modifiers
-    const cloudFrac = clamp01((h.cloudCoverPct ?? 0) / 100);
-    const precipMm = Math.max(0, h.precipMm ?? 0);
-    const wmo = h.weatherCode ?? 0;
-
-    // Cloud attenuation – stronger when sun is low, slightly milder at high sun angles
-    const altFactor = clamp01(alt / 60); // 0 at horizon or below, ~1 near high sun
-    const cloudAttenuationStrength = clamp(0.55, 0.85 - 0.25 * altFactor, 0.85);
-    const T_cloud = 1 - cloudAttenuationStrength * Math.pow(cloudFrac, 1.2);
-
-    // Precipitation attenuation – caps at ~50% reduction in heavy rain/snow
-    const T_precip = 1 - clamp(precipMm / 10, 0, 0.5);
-
-    // Weather code attenuation – handles fog, thunderstorms, etc.
-    const T_code = weatherCodeTransmittance(wmo);
-
-    // Combine transmittance; keep a small un-occludable portion to preserve twilight visibility
-    const T_total = clamp01(T_cloud * T_precip * T_code);
-    let index = clamp01(base * (0.35 + 0.65 * T_total));
-
-    // Optional: snow albedo boost in daylight (snow can feel brighter)
-    if (isSnowCode(wmo) && alt > 5) {
-      index = Math.min(1, index * 1.1);
-    }
-
-    return index;
+  // Base daylight from solar altitude (includes twilight before sunrise)
+  const base = daylightFactorFromAltitude(alt);
+  return clamp01(base);
   });
 }
 
@@ -120,24 +90,7 @@ function daylightFactorFromAltitude(altDeg: number): number {
   return clamp01(0.55 + 0.45 * ease);
 }
 
-function weatherCodeTransmittance(code: number): number {
-  // Open-Meteo WMO mapping buckets
-  if (code === 0 || code === 1 || code === 2) return 1.0; // clear to partly cloudy (clouds handled separately)
-  if (code === 3) return 0.9; // overcast baseline
-  if (code === 45 || code === 48) return 0.5; // fog / depositing rime fog
-  if (code >= 51 && code <= 57) return 0.85; // drizzle
-  if (code >= 61 && code <= 67) return 0.75; // rain
-  if (code >= 71 && code <= 77) return 0.85; // snow
-  if (code >= 80 && code <= 82) return 0.7;  // rain showers
-  if (code === 85 || code === 86) return 0.8; // snow showers
-  if (code === 95) return 0.6;               // thunderstorm
-  if (code === 96 || code === 99) return 0.55; // thunderstorm with hail
-  return 0.85; // fallback mild attenuation
-}
-
-function isSnowCode(code: number): boolean {
-  return (code >= 71 && code <= 77) || code === 85 || code === 86;
-}
+// (Weather codes and precipitation/cloud attenuation removed in the simple version)
 
 // --- Utils ---
 
@@ -159,16 +112,8 @@ function toDeg(rad: number): number { return (rad * 180) / Math.PI; }
 // Convenience: compute index array from primitive arrays
 export function computeDaylightBrightnessIndexFromArrays(
   times: Array<Date | string | number>,
-  cloudCoverPct: number[],
-  precipMm: number[],
-  weatherCodes: number[],
   opts: BrightnessOptions
 ): number[] {
-  const hours: HourlyInputs[] = times.map((t, i) => ({
-    time: t,
-    cloudCoverPct: cloudCoverPct[i] ?? 0,
-    precipMm: precipMm[i] ?? 0,
-    weatherCode: weatherCodes[i] ?? 0,
-  }));
+  const hours: HourlyInputs[] = times.map((t) => ({ time: t }));
   return computeDaylightBrightnessIndex(hours, opts);
 }
