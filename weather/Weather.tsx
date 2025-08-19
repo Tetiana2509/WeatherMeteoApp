@@ -175,6 +175,7 @@ export default function Weather({ height, currentTime, data, style, dataType = '
         currentTime={safeCurrentTime}
         formatData={formatData}
         smooth={dataType !== 'clouds'}
+  amplitudeSteps={dataType === 'temperature' ? 3 : undefined}
         theme={chartTheme}
       />
     </View>

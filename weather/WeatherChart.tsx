@@ -14,6 +14,8 @@ export interface WeatherChartProps {
   formatData: (value: number) => string;
   /** Whether to apply smoothing to the series (default: true) */
   smooth?: boolean;
+  /** Target amplitude in Y-axis divisions: make (max-min) span exactly this many grid steps out of total steps (5). */
+  amplitudeSteps?: number;
   /**
    * Theme for stroke and area gradient. If not provided, defaults are used.
    */
@@ -92,6 +94,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   currentTime,
   formatData,
   smooth = true,
+  amplitudeSteps,
   theme,
 }) => {
   const [viewWidth, setViewWidth] = React.useState<number>(350); // Default width
@@ -129,12 +132,26 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     
     const minValue = Math.min(...series);
     const maxValue = Math.max(...series);
-  let chartMin: number;
-  let chartMax: number;
-  const valueRange = maxValue - minValue;
-  const padding = valueRange * 0.1; // 10% padding both sides
-  chartMin = minValue - padding;
-  chartMax = maxValue + padding;
+    let chartMin: number;
+    let chartMax: number;
+    const totalSteps = 5; // must match Y-axis labels steps
+    if (typeof amplitudeSteps === 'number' && amplitudeSteps > 0) {
+      const amp = Math.max(1, Math.min(totalSteps, Math.floor(amplitudeSteps)));
+      const delta = maxValue - minValue;
+      const effectiveDelta = delta === 0 ? 1 : delta;
+      // Scale overall chart range so data occupies exactly amp steps out of totalSteps
+      const desiredRange = effectiveDelta * (totalSteps / amp);
+      const extra = Math.max(0, desiredRange - effectiveDelta);
+      const bottomPad = extra / 2;
+      const topPad = extra / 2;
+      chartMin = minValue - bottomPad;
+      chartMax = maxValue + topPad;
+    } else {
+      const valueRange = maxValue - minValue;
+      const padding = valueRange * 0.1; // 10% padding both sides
+      chartMin = minValue - padding;
+      chartMax = maxValue + padding;
+    }
     const chartRange = chartMax - chartMin;
     
     // Handle edge case where all values are the same (chartRange = 0)
