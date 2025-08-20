@@ -51,11 +51,24 @@ export default function Weather({ height, currentTime, data, style, dataType = '
     : 0;
 
   
-  const formatData = dataType === 'temperature' ? formatTemperature :
+  // Choose base formatter by data type
+  const baseFormat = dataType === 'temperature' ? formatTemperature :
                      dataType === 'precipitation' ? formatPrecipitation :
                      dataType === 'clouds' ? formatClouds :
                      dataType === 'brightness' ? formatBrightness :
                      formatUVIndex;
+
+  // For all types except temperature, clamp displayed labels at 0
+  const formatData = (value: number) => {
+    const v = dataType === 'temperature' ? value : Math.max(0, value);
+    return baseFormat(v);
+  };
+
+  // For plotting: clamp values below 0 to 0 for non-temperature charts
+  const plotData = React.useMemo(() => {
+    if (dataType === 'temperature') return cleanData;
+    return cleanData.map(v => (typeof v === 'number' ? Math.max(0, v) : 0));
+  }, [cleanData, dataType]);
 
   // Per-metric chart theme (stroke + area gradient)
   const chartTheme = React.useMemo(() => {
@@ -170,7 +183,7 @@ export default function Weather({ height, currentTime, data, style, dataType = '
         formatData={formatData}
       />
       <WeatherChart
-        data={cleanData}
+  data={plotData}
         height={height}
         currentTime={safeCurrentTime}
         formatData={formatData}
