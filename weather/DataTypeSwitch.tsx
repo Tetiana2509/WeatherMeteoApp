@@ -6,70 +6,62 @@ type Props = {
   value: DataType;
   onChange: (value: DataType) => void;
   style?: ViewStyle;
+  showLabels?: boolean;
 };
 
-const DataTypeSwitch: React.FC<Props> = ({ value, onChange, style }) => {
+type DataTypeButtonProps = {
+  dataType: DataType;
+  emoji: string;
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+  showLabel: boolean;
+};
+
+const DataTypeButton: React.FC<DataTypeButtonProps> = ({ dataType, emoji, label, isActive, onPress, showLabel }) => {
+  return (
+    <TouchableOpacity
+      style={[styles.dataTypeButton, isActive && styles.activeDataTypeButton]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: isActive }}
+    >
+      <View style={styles.labelWrapper}>
+        <Text style={[styles.emoji, isActive && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>
+          {emoji}
+        </Text>
+        {showLabel && (
+          <Text style={[styles.dataTypeButtonText, isActive && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>
+            {label}
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+const DataTypeSwitch: React.FC<Props> = ({ value, onChange, style, showLabels = false }) => {
+  const buttonConfigs = [
+    { dataType: 'temperature' as DataType, emoji: '🌡️', label: 'Temperature' },
+    { dataType: 'brightness' as DataType, emoji: '💡', label: 'Brightness' },
+    { dataType: 'precipitation' as DataType, emoji: '🌧️', label: 'Rain' },
+    { dataType: 'uv_index' as DataType, emoji: '☀️', label: 'UV Index' },
+    { dataType: 'clouds' as DataType, emoji: '☁️', label: 'Clouds' },
+  ];
+
   return (
     <View style={[styles.dataTypeContainer, style]}> 
-      <TouchableOpacity
-        style={[styles.dataTypeButton, value === 'temperature' && styles.activeDataTypeButton]}
-        onPress={() => onChange('temperature')}
-        accessibilityRole="button"
-        accessibilityState={{ selected: value === 'temperature' }}
-      >
-        <View style={styles.labelWrapper}>
-          <Text style={[styles.emoji, value === 'temperature' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>🌡️</Text>
-          <Text style={[styles.dataTypeButtonText, value === 'temperature' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>Temperature</Text>
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.dataTypeButton, value === 'brightness' && styles.activeDataTypeButton]}
-        onPress={() => onChange('brightness')}
-        accessibilityRole="button"
-        accessibilityState={{ selected: value === 'brightness' }}
-      >
-        <View style={styles.labelWrapper}>
-          <Text style={[styles.emoji, value === 'brightness' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>💡</Text>
-          <Text style={[styles.dataTypeButtonText, value === 'brightness' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>Brightness</Text>
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.dataTypeButton, value === 'precipitation' && styles.activeDataTypeButton]}
-        onPress={() => onChange('precipitation')}
-        accessibilityRole="button"
-        accessibilityState={{ selected: value === 'precipitation' }}
-      >
-        <View style={styles.labelWrapper}>
-          <Text style={[styles.emoji, value === 'precipitation' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>🌧️</Text>
-          <Text style={[styles.dataTypeButtonText, value === 'precipitation' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>Rain</Text>
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.dataTypeButton, value === 'uv_index' && styles.activeDataTypeButton]}
-        onPress={() => onChange('uv_index')}
-        accessibilityRole="button"
-        accessibilityState={{ selected: value === 'uv_index' }}
-      >
-        <View style={styles.labelWrapper}>
-          <Text style={[styles.emoji, value === 'uv_index' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>☀️</Text>
-          <Text style={[styles.dataTypeButtonText, value === 'uv_index' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>UV Index</Text>
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.dataTypeButton, value === 'clouds' && styles.activeDataTypeButton]}
-        onPress={() => onChange('clouds')}
-        accessibilityRole="button"
-        accessibilityState={{ selected: value === 'clouds' }}
-      >
-        <View style={styles.labelWrapper}>
-          <Text style={[styles.emoji, value === 'clouds' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>☁️</Text>
-          <Text style={[styles.dataTypeButtonText, value === 'clouds' && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>Clouds</Text>
-        </View>
-      </TouchableOpacity>
+      {buttonConfigs.map((config) => (
+        <DataTypeButton
+          key={config.dataType}
+          dataType={config.dataType}
+          emoji={config.emoji}
+          label={config.label}
+          isActive={value === config.dataType}
+          onPress={() => onChange(config.dataType)}
+          showLabel={showLabels}
+        />
+      ))}
     </View>
   );
 };
