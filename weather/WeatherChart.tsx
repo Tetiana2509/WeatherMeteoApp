@@ -214,8 +214,6 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   const curvePath = createSmoothPath(points);
   const areaPath = createAreaPath(points, chartHeight, TOP_PADDING, chartWidth, LEFT_PADDING);
 
-  console.log({curvePath, areaPath});
-
   // Build gradient stops: prefer value-based thresholds if provided
   const gradientStopsElements = React.useMemo(() => {
     const range = Math.max(1, maxValue - minValue);
