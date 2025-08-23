@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,30 +6,63 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
 } from "react-native";
-import DataTypeSwitch, { DataType } from "./weather/DataTypeSwitch";
+import DataTypeSwitch from "./weather/DataTypeSwitch";
 import TemperatureUnitSwitch from "./weather/TemperatureUnitSwitch";
-import ConnectedWeather, { ConnectedWeatherRef } from "./weather/ConnectedWeather";
-import { Ionicons } from '@expo/vector-icons';
+import ConnectedWeather, {
+  ConnectedWeatherRef,
+} from "./weather/ConnectedWeather";
+import { useLocation, useCurrentLocation } from "./hooks/useLocation";
+import { Ionicons } from "@expo/vector-icons";
+import { DataType, TemperatureUnit } from "./weather/WeatherTypes";
 
 export default function App() {
-  const [query, setQuery] = useState("Berlin");
-  const [dataType, setDataType] = useState<DataType>('temperature');
-  const [temperatureUnit, setTemperatureUnit] = useState<'celsius' | 'fahrenheit'>('celsius');
-  const [coords, setCoords] = useState<{
-    lat: number;
-    lon: number;
-  } | null>(null);
+  const [location, setLocation] = useState("");
+  const [inputValue, setInputValue] = useState("");
+  const [dataType, setDataType] = useState<DataType>("temperature");
+  const [temperatureUnit, setTemperatureUnit] = useState<TemperatureUnit>("celsius");
+  const [hasInitialized, setHasInitialized] = useState(false);
+  const [shouldUseCurrentLocation, setShouldUseCurrentLocation] = useState(false);
 
+  const { coords: locationCoords, status } = useLocation(location);
+  const currentLocationCoords = useCurrentLocation();
   const connectedWeatherRef = useRef<ConnectedWeatherRef>(null);
 
-  const handleGeolocation = async () => {
-    connectedWeatherRef.current?.getLocation();
+  // Use location coords if available, otherwise current location only if explicitly requested
+  const coords = locationCoords || (shouldUseCurrentLocation ? currentLocationCoords : null);
+
+  // Update input when using current location coordinates - only on initial load
+  useEffect(() => {
+    if (!hasInitialized && shouldUseCurrentLocation && currentLocationCoords?.displayName && !inputValue) {
+      setInputValue(currentLocationCoords.displayName);
+      setHasInitialized(true);
+    }
+  }, [currentLocationCoords, shouldUseCurrentLocation, inputValue, hasInitialized]);
+
+  // Update input value when location is resolved from search
+  useEffect(() => {
+    if (locationCoords?.displayName && locationCoords.displayName !== inputValue) {
+      setInputValue(locationCoords.displayName);
+    }
+  }, [locationCoords?.displayName]);
+
+  const handleGeolocation = () => {
+    if (currentLocationCoords?.displayName) {
+      setLocation("");
+      setInputValue(currentLocationCoords.displayName);
+      setShouldUseCurrentLocation(true);
+    }
   };
 
   const handleSearch = () => {
-    connectedWeatherRef.current?.search(query);
+    setLocation(inputValue);
+    setShouldUseCurrentLocation(false);
+  };
+
+  const handleClear = () => {
+    setInputValue("");
+    setLocation("");
+    setShouldUseCurrentLocation(false);
   };
 
   const handleUpdate = () => {
@@ -42,14 +75,26 @@ export default function App() {
         <Text style={styles.title}>Today's Weather</Text>
 
         <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="City, country or postal code"
-            value={query}
-            onChangeText={setQuery}
-            returnKeyType="search"
-            onSubmitEditing={handleSearch}
-          />
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="City, country or postal code"
+              value={inputValue}
+              onChangeText={setInputValue}
+              returnKeyType="search"
+              onSubmitEditing={handleSearch}
+            />
+            {inputValue.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={handleClear}
+                accessibilityRole="button"
+                accessibilityLabel="Clear input"
+              >
+                <Ionicons name="close-circle" size={20} color="#999" />
+              </TouchableOpacity>
+            )}
+          </View>
           <View style={styles.iconsContainer}>
             <TouchableOpacity
               style={styles.iconButton}
@@ -70,23 +115,39 @@ export default function App() {
           </View>
         </View>
 
-        {/* Data Type Toggle */}
-        <DataTypeSwitch value={dataType} onChange={setDataType} />
-
-        {/* Temperature Unit Toggle - показывается только для температуры */}
-        {dataType === 'temperature' && (
-          <TemperatureUnitSwitch value={temperatureUnit} onChange={setTemperatureUnit} />
+        {status && (
+          <Text
+            style={status === "loading" ? { color: "yellow" } : styles.error}
+          >
+            {status === "loading" ? "Loading location..." : status}
+          </Text>
         )}
 
-        <ConnectedWeather
-          ref={connectedWeatherRef}
-          query={query}
-          dataType={dataType}
-          temperatureUnit={temperatureUnit}
-          coords={coords}
-          onCoordsChange={setCoords}
-          onQueryChange={setQuery}
-        />
+        {coords && (
+          <>
+            <DataTypeSwitch value={dataType} onChange={setDataType} />
+
+            {dataType === "temperature" && (
+              <TemperatureUnitSwitch
+                value={temperatureUnit}
+                onChange={setTemperatureUnit}
+              />
+            )}
+
+            <ConnectedWeather
+              ref={connectedWeatherRef}
+              dataType={dataType}
+              temperatureUnit={temperatureUnit}
+              coords={coords}
+            />
+          </>
+        )}
+
+        {!coords && !status && (
+          <Text style={{ color: "#aaa", textAlign: "center", marginTop: 20 }}>
+            Enter a location or use your current location to see weather data
+          </Text>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -107,19 +168,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
+  inputContainer: {
+    flex: 1,
+    position: "relative",
+    marginRight: 8,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 10,
     paddingHorizontal: 12,
+    paddingRight: 40, // Space for clear button
     height: 44,
     backgroundColor: "#fff",
-    flex: 1,
-    marginRight: 8,
+  },
+  clearButton: {
+    position: "absolute",
+    right: 10,
+    top: "50%",
+    transform: [{ translateY: -10 }], // Half of icon size for perfect centering
+    padding: 2,
   },
   iconsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   iconButton: {
     backgroundColor: "#2C2C2E",

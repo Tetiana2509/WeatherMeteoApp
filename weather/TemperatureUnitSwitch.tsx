@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
-
-export type TemperatureUnit = 'celsius' | 'fahrenheit';
+import { TemperatureUnit } from './WeatherTypes';
 
 type Props = {
   value: TemperatureUnit;
@@ -78,3 +77,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 });
+
+export { TemperatureUnit };

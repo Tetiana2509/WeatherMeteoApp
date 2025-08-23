@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
-
-export type DataType = 'temperature' | 'precipitation' | 'uv_index' | 'clouds' | 'brightness';
+import { DataType } from "./WeatherTypes";
 
 type Props = {
   value: DataType;

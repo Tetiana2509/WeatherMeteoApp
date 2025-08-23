@@ -5,44 +5,30 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import * as Location from "expo-location";
 import { getHourlyWeather, HourlyWeather } from "../services/meteoService";
-import { getCoordinatesByQuery, getPlaceNameByCoordinates } from "../services/geocodingService";
 import Weather from "./Weather";
 import { computeDaylightBrightnessIndexFromArrays } from "../services/brightnessIndex";
 import { useCache } from "../hooks/useCache";
-import { DataType } from "./DataTypeSwitch";
-import { TemperatureUnit } from "./TemperatureUnitSwitch";
+import { DataType, TemperatureUnit, Coords, coordsEqual } from "./WeatherTypes";
 
 type Props = {
-  query: string;
   dataType: DataType;
   temperatureUnit: TemperatureUnit;
-  coords?: { lat: number; lon: number } | null;
-  onCoordsChange?: (coords: { lat: number; lon: number }) => void;
-  onQueryChange?: (displayName: string) => void;
+  coords?: Coords | null;
 };
 
 export type ConnectedWeatherRef = {
   update: () => Promise<void>;
-  getLocation: () => Promise<void>;
-  search: (query: string) => Promise<void>;
 };
 
 const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({ 
-  query,
   dataType,
   temperatureUnit,
   coords,
-  onCoordsChange,
-  onQueryChange,
 }, ref) => {
   const [weatherData, setWeatherData] = useState<HourlyWeather | null>(null);
   const [loading, setLoading] = useState(false);
-  const [lastCoords, setLastCoords] = useState<{
-    lat: number;
-    lon: number;
-  } | null>(coords || null);
+  const [lastCoords, setLastCoords] = useState<Coords | null>(null);
 
   // Initialize cache hook with 5-minute TTL
   const weatherCache = useCache<HourlyWeather>({ ttlMinutes: 5 });
@@ -101,8 +87,8 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
       const today = new Date().toISOString().split("T")[0];
 
       // Log the first few times for debugging
-      console.log("API times:", fullData.time.slice(0, 5));
-      console.log("Today:", today);
+      // console.log("API times:", fullData.time.slice(0, 5));
+      // console.log("Today:", today);
 
       let filteredIndices = fullData.time
         .map((time, index) => ({ time, index }))
@@ -137,7 +123,7 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
         precipitation: filteredIndices.map((i) => safeGetNumber(fullData.precipitation, i, 0)),
         weathercode: filteredIndices.map((i) => safeGetNumber(fullData.weathercode, i, 0)),
         uv_index: filteredIndices.map((i) => safeGetNumber(fullData.uv_index, i, 0)),
-  cloudcover: filteredIndices.map((i) => safeGetNumber(fullData.cloudcover, i, 0)),
+        cloudcover: filteredIndices.map((i) => safeGetNumber(fullData.cloudcover, i, 0)),
         sunrise: fullData.sunrise || [],
         sunset: fullData.sunset || [],
       };
@@ -152,7 +138,7 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
       }
 
       setWeatherData(filteredData);
-      console.log("Filtered temperatures:", filteredData.temperature_2m);
+      // console.log("Filtered temperatures:", filteredData.temperature_2m);
     } catch (error) {
       console.error("Weather fetch error:", error);
       Alert.alert("Error", error instanceof Error ? error.message : "Failed to get weather");
@@ -164,77 +150,21 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
   const handleUpdate = async () => {
     if (lastCoords) {
       await fetchWeather(lastCoords.lat, lastCoords.lon, true);
-    } else if (query) {
-      await handleSearchByQuery(query);
     }
   };
 
-  const handleGetLocation = async () => {
-    try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("No access to geolocation");
-        return;
-      }
-      const location = await Location.getCurrentPositionAsync({});
-      const newCoords = {
-        lat: location.coords.latitude,
-        lon: location.coords.longitude,
-      };
-      setLastCoords(newCoords);
-      onCoordsChange?.(newCoords);
-      // Resolve a friendly name and propagate up so the input shows user's place
-      try {
-        const displayName = await getPlaceNameByCoordinates(newCoords.lat, newCoords.lon);
-        onQueryChange?.(displayName);
-      } catch {}
-      await fetchWeather(newCoords.lat, newCoords.lon);
-    } catch (err) {
-      Alert.alert("Error", "Could not determine location");
-    }
-  };
-
-  // Expose update function via ref
   useImperativeHandle(ref, () => ({
     update: handleUpdate,
-    getLocation: handleGetLocation,
-    search: handleSearchByQuery,
   }));
-
-  const handleSearchByQuery = async (searchQuery: string) => {
-    try {
-      const coordinates = await getCoordinatesByQuery(searchQuery);
-      if (!coordinates)
-        throw new Error(
-          'Please also enter the country. For example: "10115, Germany"'
-        );
-      setLastCoords(coordinates);
-      onCoordsChange?.(coordinates);
-      // Normalize input to a consistent display name
-      try {
-        const name = await getPlaceNameByCoordinates(coordinates.lat, coordinates.lon);
-        onQueryChange?.(name);
-      } catch {}
-      await fetchWeather(coordinates.lat, coordinates.lon);
-    } catch (err: any) {
-      Alert.alert("Search error", err.message);
-    }
-  };
 
   // Effect to handle external coordinate changes
   useEffect(() => {
-    if (coords && (coords.lat !== lastCoords?.lat || coords.lon !== lastCoords?.lon)) {
+    console.log("ConnectedWeather received coords:", coords, "lastCoords:", lastCoords);
+    if (coords && !coordsEqual(coords, lastCoords)) {
       setLastCoords(coords);
       fetchWeather(coords.lat, coords.lon);
     }
   }, [coords]);
-
-  // Initial load effect
-  useEffect(() => {
-    if (query && !lastCoords) {
-      handleSearchByQuery(query);
-    }
-  }, []);
 
   if (loading) {
     return <ActivityIndicator size="large" style={{ marginTop: 20 }} />;
