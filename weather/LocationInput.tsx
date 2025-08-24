@@ -79,46 +79,43 @@ export default function LocationInput({ coords, onCoordsChange, ...viewProps }: 
   return (
     <View {...viewProps}>
       <View style={styles.searchContainer}>
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={[styles.input, isLoading && styles.inputDisabled]}
-            placeholder="City, country or postal code"
-            value={inputValue}
-            onChangeText={setInputValue}
-            returnKeyType="search"
-            onSubmitEditing={handleSearch}
-            editable={!isLoading}
-          />
-          <View style={styles.inputButtonsContainer}>
-            {isLoading ? (
-              <ActivityIndicator 
-                size="small" 
-                color="#666" 
-                style={styles.activityIndicator} 
-              />
-            ) : (
-              <>
-                {inputValue.length > 0 && (
-                  <TouchableOpacity
-                    style={styles.clearButton}
-                    onPress={handleClear}
-                    accessibilityRole="button"
-                    accessibilityLabel="Clear input"
-                  >
-                    <Ionicons name="close-circle" size={22} color="#888" />
-                  </TouchableOpacity>
-                )}
+        <TextInput
+          style={[styles.input, isLoading && styles.inputDisabled]}
+          placeholder="City, country or postal code"
+          value={inputValue}
+          onChangeText={setInputValue}
+          returnKeyType="search"
+          onSubmitEditing={handleSearch}
+          editable={!isLoading}
+        />
+        <View style={styles.buttonsContainer}>
+          {isLoading ? (
+            <ActivityIndicator 
+              size="small" 
+              color="#666" 
+            />
+          ) : (
+            <>
+              {inputValue.length > 0 && (
                 <TouchableOpacity
-                  style={styles.locationButton}
-                  onPress={handleGeolocation}
+                  style={styles.clearButton}
+                  onPress={handleClear}
                   accessibilityRole="button"
-                  accessibilityLabel="Use my location"
+                  accessibilityLabel="Clear input"
                 >
-                  <Ionicons name="location" size={22} color="#888" />
+                  <Ionicons name="close-circle" size={22} color="#888" />
                 </TouchableOpacity>
-              </>
-            )}
-          </View>
+              )}
+              <TouchableOpacity
+                style={styles.locationButton}
+                onPress={handleGeolocation}
+                accessibilityRole="button"
+                accessibilityLabel="Use my location"
+              >
+                <Ionicons name="location" size={22} color="#888" />
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
 
@@ -136,28 +133,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 8,
-  },
-  inputContainer: {
-    flex: 1,
-    position: "relative",
-  },
-  input: {
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingRight: 80, // Space for location and clear buttons
-    height: 44,
     backgroundColor: "#fff",
+    height: 44,
+    paddingHorizontal: 12,
+  },
+  input: {
+    flex: 1,
+    marginRight: 8,
   },
   inputDisabled: {
-    backgroundColor: "#f5f5f5",
     color: "#999",
   },
-  inputButtonsContainer: {
-    position: "absolute",
-    top: 5,
-    right: 2,
+  buttonsContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
@@ -172,9 +162,6 @@ const styles = StyleSheet.create({
     padding: 2,
     alignItems: "center",
     justifyContent: "center",
-  },
-  activityIndicator: {
-    // Activity indicator will be positioned by the inputButtonsContainer
   },
   error: {
     color: "red",
