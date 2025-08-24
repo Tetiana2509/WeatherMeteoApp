@@ -176,7 +176,7 @@ export default function Weather({ height, currentTime, data, style, dataType = '
             const iconName = dataType === 'precipitation' ? 'rainy' : 
                            dataType === 'clouds' ? 'cloud' : 
                            dataType === 'uv_index' ? 'sunny' : 
-                           dataType === 'brightness' ? 'bulb' : 
+                           dataType === 'brightness' ? 'contrast-outline' : 
                            'thermometer';
             const iconColor = dataType === 'precipitation' ? '#76A9FF' : 
                             dataType === 'clouds' ? '#B0BEC5' : 

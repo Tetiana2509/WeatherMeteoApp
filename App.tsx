@@ -41,13 +41,6 @@ export default function App() {
           <>
             <DataTypeSwitch value={dataType} onChange={setDataType} />
 
-            {dataType === "temperature" && (
-              <TemperatureUnitSwitch
-                value={temperatureUnit}
-                onChange={setTemperatureUnit}
-              />
-            )}
-
             <ConnectedWeather
               ref={connectedWeatherRef}
               dataType={dataType}
@@ -57,6 +50,13 @@ export default function App() {
             />
 
             <View style={styles.reloadContainer}>
+              {dataType === "temperature" && (
+                <TemperatureUnitSwitch
+                  value={temperatureUnit}
+                  onChange={setTemperatureUnit}
+                  style={styles.temperatureUnitInline}
+                />
+              )}
               <TouchableOpacity
                 style={styles.reloadButton}
                 onPress={handleUpdate}
@@ -91,8 +91,14 @@ const styles = StyleSheet.create({
     color: "white",
   },
   reloadContainer: {
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 20,
+    gap: 16,
+  },
+  temperatureUnitInline: {
+    marginBottom: 0,
   },
   reloadButton: {
     backgroundColor: "#2C2C2E",
