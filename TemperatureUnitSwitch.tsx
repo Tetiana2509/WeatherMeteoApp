@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
-import { TemperatureUnit } from './WeatherTypes';
+import { TemperatureUnit } from './weather/WeatherTypes';
 
 type Props = {
   value: TemperatureUnit;

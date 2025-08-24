@@ -6,8 +6,8 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import DataTypeSwitch, { nextDataType } from "./weather/DataTypeSwitch";
-import TemperatureUnitSwitch from "./weather/TemperatureUnitSwitch";
+import DataTypeSwitch, { nextDataType } from "./DataTypeSwitch";
+import TemperatureUnitSwitch from "./TemperatureUnitSwitch";
 import ConnectedWeather, {
   ConnectedWeatherRef,
 } from "./weather/ConnectedWeather";

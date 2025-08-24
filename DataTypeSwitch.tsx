@@ -1,15 +1,23 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
-import { DataType } from "./WeatherTypes";
+import { DataType } from "./weather/WeatherTypes";
+import { getDataTypeIcon } from './weather/Weather';
 
-// Data types in the same order as the switch buttons
-const DATA_TYPES_ORDER: DataType[] = ['temperature', 'brightness', 'precipitation', 'uv_index', 'clouds'];
+// Data types with their labels in the correct order
+const DATA_TYPES: Record<DataType, string> = {
+  'temperature': 'Temperature',
+  'brightness': 'Brightness',
+  'precipitation': 'Rain',
+  'uv_index': 'UV Index',
+  'clouds': 'Clouds',
+};
 
 // Utility function to get the next data type in sequence
 export const nextDataType = (current: DataType): DataType => {
-  const currentIndex = DATA_TYPES_ORDER.indexOf(current);
-  const nextIndex = (currentIndex + 1) % DATA_TYPES_ORDER.length;
-  return DATA_TYPES_ORDER[nextIndex];
+  const dataTypes = Object.keys(DATA_TYPES) as DataType[];
+  const currentIndex = dataTypes.indexOf(current);
+  const nextIndex = (currentIndex + 1) % dataTypes.length;
+  return dataTypes[nextIndex];
 };
 
 type Props = {
@@ -21,14 +29,15 @@ type Props = {
 
 type DataTypeButtonProps = {
   dataType: DataType;
-  emoji: string;
   label: string;
   isActive: boolean;
   onPress: () => void;
   showLabel: boolean;
 };
 
-const DataTypeButton: React.FC<DataTypeButtonProps> = ({ dataType, emoji, label, isActive, onPress, showLabel }) => {
+const DataTypeButton: React.FC<DataTypeButtonProps> = ({ dataType, label, isActive, onPress, showLabel }) => {
+  const iconColor = isActive ? '#FFFFFF' : '#8E8E93';
+  
   return (
     <TouchableOpacity
       style={[styles.dataTypeButton, isActive && styles.activeDataTypeButton]}
@@ -37,9 +46,9 @@ const DataTypeButton: React.FC<DataTypeButtonProps> = ({ dataType, emoji, label,
       accessibilityState={{ selected: isActive }}
     >
       <View style={styles.labelWrapper}>
-        <Text style={[styles.emoji, isActive && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>
-          {emoji}
-        </Text>
+        <View style={styles.iconContainer}>
+          {getDataTypeIcon(dataType, 18, iconColor)}
+        </View>
         {showLabel && (
           <Text style={[styles.dataTypeButtonText, isActive && styles.activeDataTypeButtonText]} numberOfLines={1} ellipsizeMode='clip'>
             {label}
@@ -51,29 +60,15 @@ const DataTypeButton: React.FC<DataTypeButtonProps> = ({ dataType, emoji, label,
 };
 
 const DataTypeSwitch: React.FC<Props> = ({ value, onChange, style, showLabels = false }) => {
-  const buttonConfigs = [
-    { dataType: 'temperature' as DataType, emoji: '🌡️', label: 'Temperature' },
-    { dataType: 'brightness' as DataType, emoji: '💡', label: 'Brightness' },
-    { dataType: 'precipitation' as DataType, emoji: '🌧️', label: 'Rain' },
-    { dataType: 'uv_index' as DataType, emoji: '☀️', label: 'UV Index' },
-    { dataType: 'clouds' as DataType, emoji: '☁️', label: 'Clouds' },
-  ];
-
-  // Ensure button order matches DATA_TYPES_ORDER
-  const orderedButtonConfigs = DATA_TYPES_ORDER.map(dataType => 
-    buttonConfigs.find(config => config.dataType === dataType)!
-  );
-
   return (
     <View style={[styles.dataTypeContainer, style]}> 
-      {orderedButtonConfigs.map((config) => (
+      {Object.entries(DATA_TYPES).map(([dataType, label]) => (
         <DataTypeButton
-          key={config.dataType}
-          dataType={config.dataType}
-          emoji={config.emoji}
-          label={config.label}
-          isActive={value === config.dataType}
-          onPress={() => onChange(config.dataType)}
+          key={dataType}
+          dataType={dataType as DataType}
+          label={label}
+          isActive={value === dataType}
+          onPress={() => onChange(dataType as DataType)}
           showLabel={showLabels}
         />
       ))}
@@ -102,11 +97,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emoji: {
-    fontSize: 18,
-    lineHeight: 20,
-  color: '#8E8E93',
-  textAlign: 'center',
+  iconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activeDataTypeButton: {
     backgroundColor: '#007AFF',
@@ -115,7 +108,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#8E8E93',
-  textAlign: 'center',
+    textAlign: 'center',
   },
   activeDataTypeButtonText: {
     color: '#FFFFFF',
