@@ -10,26 +10,41 @@ type WeatherProps = {
   currentTime: number;
   data?: number[];
   style?: ViewStyle;
-  dataType?: 'temperature' | 'precipitation' | 'uv_index' | 'clouds' | 'brightness';
+  dataType?:
+    | 'temperature'
+    | 'precipitation'
+    | 'uv_index'
+    | 'clouds'
+    | 'brightness';
   temperatureUnit?: 'celsius' | 'fahrenheit';
   onIconTap?: () => void;
 };
 
 const formatTemperature = (value: number): string => `${Math.round(value)}°`;
-const formatPrecipitation = (value: number): string => `${Math.round(value)} mm`;
-const formatUVIndex = (value: number): string => `${Math.round(value * 10) / 10}`;
+const formatPrecipitation = (value: number): string =>
+  `${Math.round(value)} mm`;
+const formatUVIndex = (value: number): string =>
+  `${Math.round(value * 10) / 10}`;
 const formatClouds = (value: number): string => `${Math.round(value)}%`;
-const formatBrightness = (value: number): string => `${Math.round(value * 100)}%`;
+const formatBrightness = (value: number): string =>
+  `${Math.round(value * 100)}%`;
 
-export default function Weather({ height, currentTime, data, style, dataType = 'temperature', temperatureUnit = 'celsius', onIconTap }: WeatherProps) {
+export default function Weather({
+  height,
+  currentTime,
+  data,
+  style,
+  dataType = 'temperature',
+  temperatureUnit = 'celsius',
+  onIconTap,
+}: WeatherProps) {
   // Validate and clean the input data
   const cleanData = React.useMemo(() => {
     if (!data || !Array.isArray(data) || data.length === 0) {
       // 24h default data values
       return [
-        59, 59, 57, 57, 57, 55, 55, 57, 61, 63, 68, 72,
-        75, 79, 79, 79, 79, 79, 75, 73, 68, 64, 64, 63,
-        62
+        59, 59, 57, 57, 57, 55, 55, 57, 61, 63, 68, 72, 75, 79, 79, 79, 79, 79,
+        75, 73, 68, 64, 64, 63, 62,
       ];
     }
 
@@ -38,7 +53,9 @@ export default function Weather({ height, currentTime, data, style, dataType = '
       if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
         // Use the previous valid value, or 20 as default temperature
         const prevValidValue = index > 0 ? data[index - 1] : 20;
-        return typeof prevValidValue === 'number' && !isNaN(prevValidValue) ? prevValidValue : 20;
+        return typeof prevValidValue === 'number' && !isNaN(prevValidValue)
+          ? prevValidValue
+          : 20;
       }
       return value;
     });
@@ -47,17 +64,22 @@ export default function Weather({ height, currentTime, data, style, dataType = '
   }, [data]);
 
   // Ensure currentTime is valid
-  const safeCurrentTime = typeof currentTime === 'number' && !isNaN(currentTime) 
-  ? Math.max(0, Math.min(currentTime, cleanData.length - 1)) 
-    : 0;
+  const safeCurrentTime =
+    typeof currentTime === 'number' && !isNaN(currentTime)
+      ? Math.max(0, Math.min(currentTime, cleanData.length - 1))
+      : 0;
 
-  
   // Choose base formatter by data type
-  const baseFormat = dataType === 'temperature' ? formatTemperature :
-                     dataType === 'precipitation' ? formatPrecipitation :
-                     dataType === 'clouds' ? formatClouds :
-                     dataType === 'brightness' ? formatBrightness :
-                     formatUVIndex;
+  const baseFormat =
+    dataType === 'temperature'
+      ? formatTemperature
+      : dataType === 'precipitation'
+      ? formatPrecipitation
+      : dataType === 'clouds'
+      ? formatClouds
+      : dataType === 'brightness'
+      ? formatBrightness
+      : formatUVIndex;
 
   // For all types except temperature, clamp displayed labels at 0
   const formatData = (value: number) => {
@@ -68,7 +90,7 @@ export default function Weather({ height, currentTime, data, style, dataType = '
   // For plotting: clamp values below 0 to 0 for non-temperature charts
   const plotData = React.useMemo(() => {
     if (dataType === 'temperature') return cleanData;
-    return cleanData.map(v => (typeof v === 'number' ? Math.max(0, v) : 0));
+    return cleanData.map((v) => (typeof v === 'number' ? Math.max(0, v) : 0));
   }, [cleanData, dataType]);
 
   // Per-metric chart theme (stroke + area gradient)
@@ -76,23 +98,24 @@ export default function Weather({ height, currentTime, data, style, dataType = '
     switch (dataType) {
       case 'temperature':
         // Value-based gradient similar to clouds (unit-aware)
-        const tempStops = temperatureUnit === 'fahrenheit'
-          ? [
-              { value: 104, color: '#FB8C00', opacity: 0.9 },  // 40°C deep orange
-              { value: 86,  color: '#FFA726', opacity: 0.88 },  // 30°C orange
-              { value: 68,  color: '#FDD835', opacity: 0.82 },  // 20°C yellow
-              { value: 50,  color: '#26C6DA', opacity: 0.68 },  // 10°C teal
-              { value: 32,  color: '#1976D2', opacity: 0.62 },  // 0°C strong blue
-              { value: 14,  color: '#0D47A1', opacity: 0.58 },  // -10°C deep blue
-            ]
-          : [
-              { value: 40, color: '#FB8C00', opacity: 0.9 },   // deep orange
-              { value: 30, color: '#FFA726', opacity: 0.88 },   // orange
-              { value: 20, color: '#FDD835', opacity: 0.82 },   // yellow
-              { value: 10, color: '#26C6DA', opacity: 0.68 },   // teal
-              { value: 0,  color: '#1976D2', opacity: 0.62 },   // strong blue at freezing
-              { value: -10, color: '#0D47A1', opacity: 0.58 },  // deep blue below freezing
-            ];
+        const tempStops =
+          temperatureUnit === 'fahrenheit'
+            ? [
+                { value: 104, color: '#FB8C00', opacity: 0.9 }, // 40°C deep orange
+                { value: 86, color: '#FFA726', opacity: 0.88 }, // 30°C orange
+                { value: 68, color: '#FDD835', opacity: 0.82 }, // 20°C yellow
+                { value: 50, color: '#26C6DA', opacity: 0.68 }, // 10°C teal
+                { value: 32, color: '#1976D2', opacity: 0.62 }, // 0°C strong blue
+                { value: 14, color: '#0D47A1', opacity: 0.58 }, // -10°C deep blue
+              ]
+            : [
+                { value: 40, color: '#FB8C00', opacity: 0.9 }, // deep orange
+                { value: 30, color: '#FFA726', opacity: 0.88 }, // orange
+                { value: 20, color: '#FDD835', opacity: 0.82 }, // yellow
+                { value: 10, color: '#26C6DA', opacity: 0.68 }, // teal
+                { value: 0, color: '#1976D2', opacity: 0.62 }, // strong blue at freezing
+                { value: -10, color: '#0D47A1', opacity: 0.58 }, // deep blue below freezing
+              ];
         return {
           strokeColor: '#FFA726',
           gradientTopColor: '#FFE082',
@@ -125,10 +148,10 @@ export default function Weather({ height, currentTime, data, style, dataType = '
           // Value-based stops: align to UVI bands (>=9 pink, >=6 orange, >=3 yellow, else green)
           gradientValueStops: [
             { value: 12, color: '#EC407A', opacity: 0.95 }, // near max/extreme
-            { value: 9, color: '#EC407A', opacity: 0.9 },   // pink band start
-            { value: 6, color: '#FF7043', opacity: 0.85 },  // orange band start
-            { value: 3, color: '#FBC02D', opacity: 0.75 },  // yellow band start
-            { value: 0, color: '#43A047', opacity: 0.55 },  // green to bottom
+            { value: 9, color: '#EC407A', opacity: 0.9 }, // pink band start
+            { value: 6, color: '#FF7043', opacity: 0.85 }, // orange band start
+            { value: 3, color: '#FBC02D', opacity: 0.75 }, // yellow band start
+            { value: 0, color: '#43A047', opacity: 0.55 }, // green to bottom
           ],
         } as const;
       case 'clouds':
@@ -141,10 +164,10 @@ export default function Weather({ height, currentTime, data, style, dataType = '
           // Value-based gradient: 0% clear (blue) → 100% overcast (gray)
           gradientValueStops: [
             { value: 100, color: '#90A4AE', opacity: 0.65 }, // overcast gray (top)
-            { value: 75, color: '#CFD8DC', opacity: 0.6 },   // broken clouds
-            { value: 50, color: '#ECEFF1', opacity: 0.58 },  // scattered → near white
-            { value: 25, color: '#B3E5FC', opacity: 0.52 },  // few clouds, pale blue
-            { value: 0, color: '#4FC3F7', opacity: 0.5 },    // clear sky blue (bottom)
+            { value: 75, color: '#CFD8DC', opacity: 0.6 }, // broken clouds
+            { value: 50, color: '#ECEFF1', opacity: 0.58 }, // scattered → near white
+            { value: 25, color: '#B3E5FC', opacity: 0.52 }, // few clouds, pale blue
+            { value: 0, color: '#4FC3F7', opacity: 0.5 }, // clear sky blue (bottom)
           ],
         } as const;
       case 'brightness':
@@ -159,7 +182,7 @@ export default function Weather({ height, currentTime, data, style, dataType = '
             { value: 1.0, color: '#FFF59D', opacity: 0.95 }, // bright yellow
             { value: 0.7, color: '#FFD54F', opacity: 0.85 }, // sunlight
             { value: 0.4, color: '#26C6DA', opacity: 0.65 }, // teal twilight
-            { value: 0.2, color: '#1976D2', opacity: 0.6 },  // blue dusk
+            { value: 0.2, color: '#1976D2', opacity: 0.6 }, // blue dusk
             { value: 0.0, color: '#0D47A1', opacity: 0.55 }, // deep night
           ],
         } as const;
@@ -172,19 +195,19 @@ export default function Weather({ height, currentTime, data, style, dataType = '
     <View style={[styles.weatherRow, style]}>
       <WeatherNow
         icon={getDataTypeIcon(dataType)}
-  currentTemp={cleanData[Math.floor(safeCurrentTime)]}
-  highTemp={Math.max(...cleanData)}
-  lowTemp={Math.min(...cleanData)}
+        currentTemp={cleanData[Math.floor(safeCurrentTime)]}
+        highTemp={Math.max(...cleanData)}
+        lowTemp={Math.min(...cleanData)}
         formatData={formatData}
         onIconTap={onIconTap}
       />
       <WeatherChart
-  data={plotData}
+        data={plotData}
         height={height}
         currentTime={safeCurrentTime}
         formatData={formatData}
         smooth={dataType !== 'clouds'}
-  amplitudeSteps={dataType === 'temperature' ? 3 : undefined}
+        amplitudeSteps={dataType === 'temperature' ? 3 : undefined}
         theme={chartTheme}
       />
     </View>
@@ -196,26 +219,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginLeft: 40,
     marginRight: 25,
-    marginBottom: 16
+    marginBottom: 16,
   },
 });
 
 // Shared function to get icon component for each data type
-export const getDataTypeIcon = (dataType: DataType, size: number = 40, customColor?: string): React.ReactNode => {
-  const iconName = dataType === 'precipitation' ? 'rainy' : 
-                 dataType === 'clouds' ? 'cloud' : 
-                 dataType === 'uv_index' ? 'sunny' : 
-                 dataType === 'brightness' ? 'contrast-outline' : 
-                 'thermometer';
-  
+export const getDataTypeIcon = (
+  dataType: DataType,
+  size: number = 40,
+  customColor?: string,
+): React.ReactNode => {
+  const iconName =
+    dataType === 'precipitation'
+      ? 'rainy'
+      : dataType === 'clouds'
+      ? 'cloud'
+      : dataType === 'uv_index'
+      ? 'sunny'
+      : dataType === 'brightness'
+      ? 'contrast-outline'
+      : 'thermometer';
+
   // Use custom color if provided, otherwise use default colors
-  const iconColor = customColor || (
-    dataType === 'precipitation' ? '#76A9FF' : 
-    dataType === 'clouds' ? '#B0BEC5' : 
-    dataType === 'uv_index' ? '#66BB6A' : 
-    dataType === 'brightness' ? '#FFD54F' : 
-    '#FFD94B'
-  );
-  
+  const iconColor =
+    customColor ||
+    (dataType === 'precipitation'
+      ? '#76A9FF'
+      : dataType === 'clouds'
+      ? '#B0BEC5'
+      : dataType === 'uv_index'
+      ? '#66BB6A'
+      : dataType === 'brightness'
+      ? '#FFD54F'
+      : '#FFD94B');
+
   return <Ionicons name={iconName as any} size={size} color={iconColor} />;
 };

@@ -24,8 +24,8 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.iconContainer} 
+      <TouchableOpacity
+        style={styles.iconContainer}
         onPress={onIconTap}
         activeOpacity={0.7}
         accessibilityRole="button"
@@ -33,7 +33,11 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
       >
         {icon}
       </TouchableOpacity>
-      <MadoText style={styles.currentTemp} numberOfLines={1} adjustsFontSizeToFit>
+      <MadoText
+        style={styles.currentTemp}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
         {formatData(currentTemp)}
       </MadoText>
       <MadoText style={styles.tempRange}>H {formatData(highTemp)}</MadoText>
@@ -58,5 +62,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 8,
   },
-  tempRange: { fontSize: 13, fontWeight: '600', color: '#9a9a9a', marginBottom: 2 },
+  tempRange: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#9a9a9a',
+    marginBottom: 2,
+  },
 });
