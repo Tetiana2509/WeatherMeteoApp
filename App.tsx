@@ -11,7 +11,7 @@ import TemperatureUnitSwitch from "./weather/TemperatureUnitSwitch";
 import ConnectedWeather, {
   ConnectedWeatherRef,
 } from "./weather/ConnectedWeather";
-import LocationInput from "./components/LocationInput";
+import LocationInput from "./weather/LocationInput";
 import { Ionicons } from "@expo/vector-icons";
 import { DataType, TemperatureUnit, Coords } from "./weather/WeatherTypes";
 

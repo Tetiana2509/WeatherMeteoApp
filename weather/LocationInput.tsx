@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useLocation, useCurrentLocation } from "../hooks/useLocation";
 import { Ionicons } from "@expo/vector-icons";
-import { Coords } from "../weather/WeatherTypes";
+import { Coords } from "./WeatherTypes";
 
 type Props = ViewProps & {
   coords?: Coords | null;
