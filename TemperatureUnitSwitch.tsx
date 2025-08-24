@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
 import { TemperatureUnit } from './weather/WeatherTypes';
+import { COLORS } from './styling';
 
 type Props = {
   value: TemperatureUnit;
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
   temperatureUnitContainer: {
     flexDirection: 'row',
     marginBottom: 20,
-    backgroundColor: '#1C1C1E',
+    backgroundColor: COLORS.controlsBG,
     borderRadius: 6,
     padding: 2,
     alignSelf: 'center',
@@ -66,15 +67,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 1,
   },
   activeUnitButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.selectionBG,
   },
   unitButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8E8E93',
+    color: COLORS.controlsFG,
   },
   activeUnitButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.selectionFG,
   },
 });
 

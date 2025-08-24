@@ -2,6 +2,7 @@ import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
 import { DataType } from "./weather/WeatherTypes";
 import { getDataTypeIcon } from './weather/Weather';
+import { COLORS } from './styling';
 
 // Data types with their labels in the correct order
 const DATA_TYPES: Record<DataType, string> = {
@@ -36,7 +37,7 @@ type DataTypeButtonProps = {
 };
 
 const DataTypeButton: React.FC<DataTypeButtonProps> = ({ dataType, label, isActive, onPress, showLabel }) => {
-  const iconColor = isActive ? '#FFFFFF' : '#8E8E93';
+  const iconColor = isActive ? COLORS.selectionFG : COLORS.controlsFG;
   
   return (
     <TouchableOpacity
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
   dataTypeContainer: {
     flexDirection: 'row',
     marginBottom: 20,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: COLORS.controlsBG,
     borderRadius: 8,
     padding: 2,
   },
@@ -102,15 +103,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeDataTypeButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.selectionBG,
   },
   dataTypeButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8E8E93',
+    color: COLORS.controlsFG,
     textAlign: 'center',
   },
   activeDataTypeButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.selectionFG,
   },
 });

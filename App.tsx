@@ -14,6 +14,7 @@ import ConnectedWeather, {
 import LocationInput from "./weather/LocationInput";
 import { Ionicons } from "@expo/vector-icons";
 import { DataType, TemperatureUnit, Coords } from "./weather/WeatherTypes";
+import { COLORS } from "./styling";
 
 export default function App() {
   const [coords, setCoords] = useState<Coords | null>(null);
@@ -63,7 +64,7 @@ export default function App() {
                 accessibilityRole="button"
                 accessibilityLabel="Reload weather data"
               >
-                <Ionicons name="refresh" size={20} color="#fff" />
+                <Ionicons name="refresh" size={20} color={COLORS.controlsFG} />
                 <Text style={styles.reloadButtonText}>Reload</Text>
               </TouchableOpacity>
             </View>
@@ -101,7 +102,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   reloadButton: {
-    backgroundColor: "#2C2C2E",
+    backgroundColor: COLORS.controlsBG,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   reloadButtonText: {
-    color: "#fff",
+    color: COLORS.controlsFG,
     fontSize: 16,
     fontWeight: "600",
   },
