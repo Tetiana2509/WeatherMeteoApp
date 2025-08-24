@@ -82,7 +82,7 @@ export default function App() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#333333" },
-  container: { flex: 1, padding: 20 },
+  container: { flex: 1, padding: 20, gap: 4 },
   title: {
     fontSize: 22,
     fontWeight: "bold",
