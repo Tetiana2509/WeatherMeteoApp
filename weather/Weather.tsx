@@ -11,6 +11,7 @@ type WeatherProps = {
   style?: ViewStyle;
   dataType?: 'temperature' | 'precipitation' | 'uv_index' | 'clouds' | 'brightness';
   temperatureUnit?: 'celsius' | 'fahrenheit';
+  onIconTap?: () => void;
 };
 
 
@@ -20,7 +21,7 @@ const formatUVIndex = (value: number): string => `${Math.round(value * 10) / 10}
 const formatClouds = (value: number): string => `${Math.round(value)}%`;
 const formatBrightness = (value: number): string => `${Math.round(value * 100)}%`;
 
-export default function Weather({ height, currentTime, data, style, dataType = 'temperature', temperatureUnit = 'celsius' }: WeatherProps) {
+export default function Weather({ height, currentTime, data, style, dataType = 'temperature', temperatureUnit = 'celsius', onIconTap }: WeatherProps) {
   // Validate and clean the input data
   const cleanData = React.useMemo(() => {
     if (!data || !Array.isArray(data) || data.length === 0) {
@@ -172,8 +173,16 @@ export default function Weather({ height, currentTime, data, style, dataType = '
       <WeatherNow
         icon={(
           (() => {
-            const iconName = dataType === 'precipitation' ? 'rainy' : dataType === 'clouds' ? 'cloud' : 'sunny';
-            const iconColor = dataType === 'precipitation' ? '#76A9FF' : dataType === 'clouds' ? '#B0BEC5' : '#FFD94B';
+            const iconName = dataType === 'precipitation' ? 'rainy' : 
+                           dataType === 'clouds' ? 'cloud' : 
+                           dataType === 'uv_index' ? 'sunny' : 
+                           dataType === 'brightness' ? 'bulb' : 
+                           'thermometer';
+            const iconColor = dataType === 'precipitation' ? '#76A9FF' : 
+                            dataType === 'clouds' ? '#B0BEC5' : 
+                            dataType === 'uv_index' ? '#66BB6A' : 
+                            dataType === 'brightness' ? '#FFD54F' : 
+                            '#FFD94B';
             return <Ionicons name={iconName as any} size={40} color={iconColor} />;
           })()
         )}
@@ -181,6 +190,7 @@ export default function Weather({ height, currentTime, data, style, dataType = '
   highTemp={Math.max(...cleanData)}
   lowTemp={Math.min(...cleanData)}
         formatData={formatData}
+        onIconTap={onIconTap}
       />
       <WeatherChart
   data={plotData}

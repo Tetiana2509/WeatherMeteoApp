@@ -1,6 +1,6 @@
 // WeatherNow.tsx
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { MadoText } from './Controls';
 
 interface WeatherNowProps {
@@ -10,6 +10,8 @@ interface WeatherNowProps {
   lowTemp: number;
   /** Function to format units (e.g., temperature or precipitation) */
   formatData: (value: number) => string;
+  /** Callback when icon is tapped */
+  onIconTap?: () => void;
 }
 
 const WeatherNow: React.FC<WeatherNowProps> = ({
@@ -18,10 +20,19 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
   highTemp,
   lowTemp,
   formatData,
+  onIconTap,
 }) => {
   return (
     <View style={styles.container}>
-      <View style={styles.iconContainer}>{icon}</View>
+      <TouchableOpacity 
+        style={styles.iconContainer} 
+        onPress={onIconTap}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Switch data type"
+      >
+        {icon}
+      </TouchableOpacity>
       <MadoText style={styles.currentTemp} numberOfLines={1} adjustsFontSizeToFit>
         {formatData(currentTemp)}
       </MadoText>

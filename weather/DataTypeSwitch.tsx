@@ -2,6 +2,16 @@ import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
 import { DataType } from "./WeatherTypes";
 
+// Data types in the same order as the switch buttons
+const DATA_TYPES_ORDER: DataType[] = ['temperature', 'brightness', 'precipitation', 'uv_index', 'clouds'];
+
+// Utility function to get the next data type in sequence
+export const nextDataType = (current: DataType): DataType => {
+  const currentIndex = DATA_TYPES_ORDER.indexOf(current);
+  const nextIndex = (currentIndex + 1) % DATA_TYPES_ORDER.length;
+  return DATA_TYPES_ORDER[nextIndex];
+};
+
 type Props = {
   value: DataType;
   onChange: (value: DataType) => void;
@@ -49,9 +59,14 @@ const DataTypeSwitch: React.FC<Props> = ({ value, onChange, style, showLabels = 
     { dataType: 'clouds' as DataType, emoji: '☁️', label: 'Clouds' },
   ];
 
+  // Ensure button order matches DATA_TYPES_ORDER
+  const orderedButtonConfigs = DATA_TYPES_ORDER.map(dataType => 
+    buttonConfigs.find(config => config.dataType === dataType)!
+  );
+
   return (
     <View style={[styles.dataTypeContainer, style]}> 
-      {buttonConfigs.map((config) => (
+      {orderedButtonConfigs.map((config) => (
         <DataTypeButton
           key={config.dataType}
           dataType={config.dataType}

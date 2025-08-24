@@ -15,6 +15,7 @@ type Props = {
   dataType: DataType;
   temperatureUnit: TemperatureUnit;
   coords?: Coords | null;
+  onIconTap?: () => void;
 };
 
 export type ConnectedWeatherRef = {
@@ -25,6 +26,7 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
   dataType,
   temperatureUnit,
   coords,
+  onIconTap,
 }, ref) => {
   const [weatherData, setWeatherData] = useState<HourlyWeather | null>(null);
   const [loading, setLoading] = useState(false);
@@ -207,6 +209,7 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(({
         style={{ marginLeft: 0, marginRight: 0, marginTop: 20 }}
         dataType={dataType}
         temperatureUnit={temperatureUnit}
+        onIconTap={onIconTap}
       />
 
       <Text style={{ color: "aqua" }}>

@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import DataTypeSwitch from "./weather/DataTypeSwitch";
+import DataTypeSwitch, { nextDataType } from "./weather/DataTypeSwitch";
 import TemperatureUnitSwitch from "./weather/TemperatureUnitSwitch";
 import ConnectedWeather, {
   ConnectedWeatherRef,
@@ -24,6 +24,10 @@ export default function App() {
 
   const handleUpdate = () => {
     connectedWeatherRef.current?.update();
+  };
+
+  const handleIconTap = () => {
+    setDataType(nextDataType(dataType));
   };
 
   return (
@@ -49,6 +53,7 @@ export default function App() {
               dataType={dataType}
               temperatureUnit={temperatureUnit}
               coords={coords}
+              onIconTap={handleIconTap}
             />
 
             <View style={styles.reloadContainer}>
