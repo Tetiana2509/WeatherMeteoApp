@@ -360,7 +360,7 @@ const DEFAULT_THEME = {
 };
 const DATA_POINT_DIMS = 16;
 const X_AXIS_LABEL_HEIGHT = 20; // Space reserved for X-axis labels at bottom
-const Y_AXIS_LABEL_WIDTH = 30; // Width reserved for Y-axis labels
+const Y_AXIS_LABEL_WIDTH = 40; // Width reserved for Y-axis labels
 const TOP_PADDING = 10; // Padding at the top of the chart
 const LEFT_PADDING = 10; // Padding at the left of the chart
 const GRID_LINE_COLOR = '#939497';
