@@ -1,25 +1,29 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   SafeAreaView,
   StyleSheet,
   TouchableOpacity,
-} from "react-native";
-import DataTypeSwitch, { nextDataType } from "./DataTypeSwitch";
-import TemperatureUnitSwitch from "./TemperatureUnitSwitch";
-import ConnectedWeather, {
+} from 'react-native';
+import DataTypeSwitch, { nextDataType } from './DataTypeSwitch';
+import TemperatureUnitSwitch from './TemperatureUnitSwitch';
+import { Ionicons } from '@expo/vector-icons';
+import {
+  DataType,
+  TemperatureUnit,
+  Coords,
+  ConnectedWeather,
   ConnectedWeatherRef,
-} from "./weather/ConnectedWeather";
-import LocationInput from "./weather/LocationInput";
-import { Ionicons } from "@expo/vector-icons";
-import { DataType, TemperatureUnit, Coords } from "./weather/WeatherTypes";
-import { COLORS } from "./styling";
+  LocationInput,
+} from './weather';
+import { COLORS } from './styling';
 
 export default function App() {
   const [coords, setCoords] = useState<Coords | null>(null);
-  const [dataType, setDataType] = useState<DataType>("temperature");
-  const [temperatureUnit, setTemperatureUnit] = useState<TemperatureUnit>("celsius");
+  const [dataType, setDataType] = useState<DataType>('temperature');
+  const [temperatureUnit, setTemperatureUnit] =
+    useState<TemperatureUnit>('celsius');
 
   const connectedWeatherRef = useRef<ConnectedWeatherRef>(null);
 
@@ -51,7 +55,7 @@ export default function App() {
             />
 
             <View style={styles.reloadContainer}>
-              {dataType === "temperature" && (
+              {dataType === 'temperature' && (
                 <TemperatureUnitSwitch
                   value={temperatureUnit}
                   onChange={setTemperatureUnit}
@@ -72,7 +76,7 @@ export default function App() {
         )}
 
         {!coords && (
-          <Text style={{ color: "#aaa", textAlign: "center", marginTop: 20 }}>
+          <Text style={{ color: '#aaa', textAlign: 'center', marginTop: 20 }}>
             Enter a location or use your current location to see weather data
           </Text>
         )}
@@ -82,14 +86,14 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#333333" },
+  screen: { flex: 1, backgroundColor: '#333333' },
   container: { flex: 1, padding: 20, gap: 4 },
   title: {
     fontSize: 22,
-    fontWeight: "bold",
-    textAlign: "center",
+    fontWeight: 'bold',
+    textAlign: 'center',
     marginBottom: 12,
-    color: "white",
+    color: 'white',
   },
   reloadContainer: {
     flexDirection: 'row',
@@ -103,9 +107,9 @@ const styles = StyleSheet.create({
   },
   reloadButton: {
     backgroundColor: COLORS.controlsBG,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 22,
@@ -114,6 +118,6 @@ const styles = StyleSheet.create({
   reloadButtonText: {
     color: COLORS.controlsFG,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
   },
 });

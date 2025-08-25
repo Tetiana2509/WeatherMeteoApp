@@ -8,16 +8,16 @@ import {
   ViewProps,
   ActivityIndicator,
 } from "react-native";
-import { useLocation, useCurrentLocation } from "../hooks/useLocation";
+import { useLocation, useCurrentLocation } from "./hooks/useLocation";
 import { Ionicons } from "@expo/vector-icons";
-import { Coords } from "./WeatherTypes";
+import { Coords } from "./types";
 
 type Props = ViewProps & {
   coords?: Coords | null;
   onCoordsChange: (coords: Coords | null) => void;
 };
 
-export default function LocationInput({ coords, onCoordsChange, ...viewProps }: Props) {
+export function LocationInput({ coords, onCoordsChange, ...viewProps }: Props) {
   const [location, setLocation] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [hasInitialized, setHasInitialized] = useState(false);

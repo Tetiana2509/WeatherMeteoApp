@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import * as ExpoLocation from "expo-location";
-import { getCoordinatesByQuery, getPlaceNameByCoordinates } from "../services/geocodingService";
-import { Coords } from "../weather/WeatherTypes";
+import { useEffect, useRef, useState } from 'react';
+import * as ExpoLocation from 'expo-location';
+import {
+  getCoordinatesByQuery,
+  getPlaceNameByCoordinates,
+} from '../services/geocodingService';
+import { Coords } from '../types';
 
 // useLocation: takes only initialLocation, returns location, coords, and a status string
 // - status is "loading" during work, error message on failure, or null otherwise.
@@ -9,18 +12,18 @@ import { Coords } from "../weather/WeatherTypes";
 export function useLocation(initialLocation?: string) {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [status, setStatus] = useState<string | null>(null);
-  const lastResolvedRef = useRef<string>(""); // normalized last resolved location
+  const lastResolvedRef = useRef<string>(''); // normalized last resolved location
 
   useEffect(() => {
     let cancelled = false;
-    const nextInput = (initialLocation ?? "").trim();
+    const nextInput = (initialLocation ?? '').trim();
     const normalized = nextInput.toLowerCase();
 
     // If empty, reset and stop
     if (!nextInput) {
       setCoords(null);
       setStatus(null);
-      lastResolvedRef.current = "";
+      lastResolvedRef.current = '';
       return;
     }
 
@@ -29,18 +32,23 @@ export function useLocation(initialLocation?: string) {
       return;
     }
 
-    setStatus("loading");
+    setStatus('loading');
     (async () => {
       try {
         const resolved = await getCoordinatesByQuery(nextInput);
         if (!resolved) {
-          throw new Error('Please also enter the country. For example: "10115, Germany"');
+          throw new Error(
+            'Please also enter the country. For example: "10115, Germany"',
+          );
         }
         if (cancelled) return;
 
         let displayName = nextInput;
         try {
-          displayName = await getPlaceNameByCoordinates(resolved.lat, resolved.lon);
+          displayName = await getPlaceNameByCoordinates(
+            resolved.lat,
+            resolved.lon,
+          );
         } catch {
           // keep original input if reverse geocoding fails
         }
@@ -48,14 +56,14 @@ export function useLocation(initialLocation?: string) {
         if (!cancelled) {
           setCoords({
             ...resolved,
-            displayName: displayName
+            displayName: displayName,
           });
           lastResolvedRef.current = normalized;
           setStatus(null);
         }
       } catch (e: any) {
         if (!cancelled) {
-          setStatus(e?.message || "Failed to find location");
+          setStatus(e?.message || 'Failed to find location');
         }
       }
     })();
@@ -75,8 +83,9 @@ export function useCurrentLocation() {
     let mounted = true;
     (async () => {
       try {
-        const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
-        if (status !== "granted") return;
+        const { status } =
+          await ExpoLocation.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
         const current = await ExpoLocation.getCurrentPositionAsync({});
         if (!mounted) return;
 
@@ -86,7 +95,10 @@ export function useCurrentLocation() {
         };
 
         try {
-          const displayName = await getPlaceNameByCoordinates(newCoords.lat, newCoords.lon);
+          const displayName = await getPlaceNameByCoordinates(
+            newCoords.lat,
+            newCoords.lon,
+          );
           if (mounted) setCoords({ ...newCoords, displayName: displayName });
         } catch {
           if (mounted) setCoords(newCoords);

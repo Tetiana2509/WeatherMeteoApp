@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
-import { DataType } from "./weather/WeatherTypes";
-import { getDataTypeIcon } from './weather/Weather';
+import { DataType, getDataTypeIcon } from './weather';
 import { COLORS } from './styling';
 
 // Data types with their labels in the correct order

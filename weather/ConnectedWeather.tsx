@@ -4,12 +4,12 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from 'react';
-import { View, Text, ActivityIndicator, Alert } from 'react-native';
-import { getHourlyWeather, HourlyWeather } from '../services/meteoService';
+import { Text, ActivityIndicator, Alert } from 'react-native';
+import { getHourlyWeather, HourlyWeather } from './services/meteoService';
 import Weather from './Weather';
-import { computeDaylightBrightnessIndexFromArrays } from '../services/brightnessIndex';
-import { useCache } from '../hooks/useCache';
-import { DataType, TemperatureUnit, Coords, coordsEqual } from './WeatherTypes';
+import { computeDaylightBrightnessIndexFromArrays } from './services/brightnessIndex';
+import { useCache } from './hooks/useCache';
+import { DataType, TemperatureUnit, Coords, coordsEqual } from './types';
 
 type Props = {
   dataType: DataType;
@@ -22,7 +22,7 @@ export type ConnectedWeatherRef = {
   update: () => Promise<void>;
 };
 
-const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
+export const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
   ({ dataType, temperatureUnit, coords, onIconTap }, ref) => {
     const [weatherData, setWeatherData] = useState<HourlyWeather | null>(null);
     const [loading, setLoading] = useState(false);
@@ -283,8 +283,6 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
     );
   },
 );
-
-export default ConnectedWeather;
 
 function clamp01(v: number) {
   return Math.max(0, Math.min(1, v));
