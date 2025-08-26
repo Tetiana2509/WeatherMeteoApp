@@ -49,43 +49,51 @@ function createSmoothPath(points: { x: number; y: number }[]): string {
   if (points.length < 2) return '';
 
   let path = `M ${points[0].x} ${points[0].y}`;
-  
+
   for (let i = 1; i < points.length; i++) {
     const prev = points[i - 1];
     const curr = points[i];
-    
+
     // Get surrounding points for better control point calculation
     const prevPrev = points[i - 2] || prev;
     const next = points[i + 1] || curr;
-    
+
     // Calculate control points using Catmull-Rom spline approach
     const tension = 0.2; // Reduced for smoother curves
-    
+
     // Control point 1 (from previous point)
     const cp1x = prev.x + (curr.x - prevPrev.x) * tension;
     const cp1y = prev.y + (curr.y - prevPrev.y) * tension;
-    
+
     // Control point 2 (to current point)
     const cp2x = curr.x - (next.x - prev.x) * tension;
     const cp2y = curr.y - (next.y - prev.y) * tension;
-    
+
     path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${curr.x} ${curr.y}`;
   }
-  
+
   return path;
 }
 
 // Helper function to create area path for gradient fill
-function createAreaPath(points: { x: number; y: number }[], chartHeight: number, topPadding: number, chartWidth: number, leftPadding: number): string {
+function createAreaPath(
+  points: { x: number; y: number }[],
+  chartHeight: number,
+  topPadding: number,
+  chartWidth: number,
+  leftPadding: number,
+): string {
   if (points.length < 2) return '';
-  
+
   const curvePath = createSmoothPath(points);
   const firstPoint = points[0];
   const lastPoint = points[points.length - 1];
   const bottomY = chartHeight + topPadding;
-  
+
   // Create area that spans the entire chart width at both top and bottom
-  return `M ${leftPadding} ${firstPoint.y} L ${curvePath.substring(2)} L ${leftPadding + chartWidth} ${lastPoint.y} L ${leftPadding + chartWidth} ${bottomY} L ${leftPadding} ${bottomY} Z`;
+  return `M ${leftPadding} ${firstPoint.y} L ${curvePath.substring(2)} L ${leftPadding + chartWidth} ${lastPoint.y} L ${
+    leftPadding + chartWidth
+  } ${bottomY} L ${leftPadding} ${bottomY} Z`;
 }
 
 const WeatherChart: React.FC<WeatherChartProps> = ({
@@ -104,11 +112,11 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     gradientBottomColor: theme?.gradientBottomColor ?? DEFAULT_THEME.gradientBottomColor,
     gradientTopOpacity: theme?.gradientTopOpacity ?? DEFAULT_THEME.gradientTopOpacity,
     gradientBottomOpacity: theme?.gradientBottomOpacity ?? DEFAULT_THEME.gradientBottomOpacity,
-  gradientStops: theme?.gradientStops,
-  gradientValueStops: theme?.gradientValueStops,
+    gradientStops: theme?.gradientStops,
+    gradientValueStops: theme?.gradientValueStops,
   }), [theme]);
-  
-  
+
+
   const processedData = React.useMemo(() => {
     if (!data?.length) return null;
 
@@ -129,7 +137,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
 
       return weightedSum / totalWeight;
     }) : data;
-    
+
     const minValue = Math.min(...series);
     const maxValue = Math.max(...series);
     let chartMin: number;
@@ -153,12 +161,12 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
       chartMax = maxValue + padding;
     }
     const chartRange = chartMax - chartMin;
-    
+
     // Handle edge case where all values are the same (chartRange = 0)
     const safeChartRange = chartRange === 0 ? 1 : chartRange;
     const safeChartMin = chartRange === 0 ? minValue - 0.5 : chartMin;
     const safeChartMax = chartRange === 0 ? maxValue + 0.5 : chartMax;
-    
+
     // Create chart dimensions
     const chartWidth = viewWidth - Y_AXIS_LABEL_WIDTH - LEFT_PADDING;
     const chartHeight = height - X_AXIS_LABEL_HEIGHT - TOP_PADDING;
@@ -166,25 +174,25 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     const curveHorizontalPadding = strokeWidth / 2;
     const availableChartWidth = chartWidth - (curveHorizontalPadding * 2);
     const stepX = availableChartWidth / Math.max(1, data.length - 1);
-    
+
     // Create points for the curve
-  const points = series.map((value, i) => ({
+    const points = series.map((value, i) => ({
       x: LEFT_PADDING + curveHorizontalPadding + (i * stepX),
       y: TOP_PADDING + (safeChartMax - value) / safeChartRange * chartHeight,
       value,
-      hour: i
+      hour: i,
     }));
-    
+
     // Create Y-axis labels
     const yAxisSteps = 5;
     const yLabels = Array.from({ length: yAxisSteps + 1 }, (_, i) => {
       const value = safeChartMax - (safeChartRange * i) / yAxisSteps; // Reverse order: start from max, go to min
       return {
         value: Math.round(value),
-        y: TOP_PADDING + (i * chartHeight) / yAxisSteps
+        y: TOP_PADDING + (i * chartHeight) / yAxisSteps,
       };
     });
-    
+
     return {
       points,
       yLabels,
@@ -192,31 +200,17 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
       chartHeight,
       minValue: safeChartMin,
       maxValue: safeChartMax,
-      currentHour: Math.round(currentTime)
+      currentHour: Math.round(currentTime),
     };
-  }, [data, viewWidth, height, currentTime, smooth]);
-
-  if (!data?.length || !processedData) {
-    return (
-      <View style={[{ height }, styles.container]}>
-        <Text style={styles.placeholder}>
-          {!data?.length ? 'No data available' : 'Loading chart...'}
-        </Text>
-      </View>
-    );
-  }
-
-  const { points, yLabels, chartWidth, chartHeight, currentHour, minValue, maxValue } = processedData;
-  const svgWidth = viewWidth;
-  const svgHeight = height;
-
-  // Create paths
-  const curvePath = createSmoothPath(points);
-  const areaPath = createAreaPath(points, chartHeight, TOP_PADDING, chartWidth, LEFT_PADDING);
+  }, [data, viewWidth, height, currentTime, smooth, amplitudeSteps]);
 
   // Build gradient stops: prefer value-based thresholds if provided
   const gradientStopsElements = React.useMemo(() => {
+    if (!processedData) return [];
+
+    const { minValue, maxValue } = processedData;
     const range = Math.max(1, maxValue - minValue);
+
     if (resolvedTheme.gradientValueStops && resolvedTheme.gradientValueStops.length > 0) {
       const mapped = resolvedTheme.gradientValueStops
         .map(s => {
@@ -231,14 +225,32 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     }
     if (resolvedTheme.gradientStops && resolvedTheme.gradientStops.length > 0) {
       return resolvedTheme.gradientStops.map((s, idx) => (
-        <Stop key={idx} offset={s.offset as any} stopColor={s.color} stopOpacity={s.opacity ?? 1} />
+        <Stop key={idx} offset={s.offset as string | number} stopColor={s.color} stopOpacity={s.opacity ?? 1} />
       ));
     }
     return [
       <Stop key="0" offset="0%" stopColor={resolvedTheme.gradientTopColor} stopOpacity={resolvedTheme.gradientTopOpacity} />,
       <Stop key="1" offset="100%" stopColor={resolvedTheme.gradientBottomColor} stopOpacity={resolvedTheme.gradientBottomOpacity} />,
     ];
-  }, [minValue, maxValue, resolvedTheme]);
+  }, [processedData, resolvedTheme]);
+
+  if (!data?.length || !processedData) {
+    return (
+      <View style={[{ height }, styles.container]}>
+        <Text style={styles.placeholder}>
+          {!data?.length ? 'No data available' : 'Loading chart...'}
+        </Text>
+      </View>
+    );
+  }
+
+  const { points, yLabels, chartWidth, chartHeight, currentHour } = processedData;
+  const svgWidth = viewWidth;
+  const svgHeight = height;
+
+  // Create paths
+  const curvePath = createSmoothPath(points);
+  const areaPath = createAreaPath(points, chartHeight, TOP_PADDING, chartWidth, LEFT_PADDING);
 
   return (
     <View
@@ -251,7 +263,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
             {gradientStopsElements}
           </LinearGradient>
         </Defs>
-        
+
         {/* Grid lines */}
         {yLabels.map((label, i) => (
           <React.Fragment key={i}>
@@ -268,13 +280,13 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
             </SvgText>
           </React.Fragment>
         ))}
-        
+
         {/* Area fill */}
         <Path
           d={areaPath}
           fill="url(#dataGradient)"
         />
-        
+
         {/* Data curve */}
         <Path
           d={curvePath}
@@ -284,7 +296,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        
+
         {/* Current time indicator */}
         {currentHour >= 0 && currentHour < points.length && (
           <Circle
@@ -296,15 +308,15 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
             strokeWidth="3"
           />
         )}
-        
+
         {/* X-axis labels and ticks */}
         {points.map((point, i) => {
           const showLabel = i % 6 === 0 && i < 24; // Show every 6 hours (0, 6, 12, 18)
           if (!showLabel) return null;
-          
+
           const axisY = chartHeight + TOP_PADDING;
           const tickHeight = 6;
-          
+
           // Position ticks at gradient boundaries for first, curve points for middle
           let tickX;
           if (i === 0) {
@@ -312,7 +324,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
           } else {
             tickX = point.x; // All other ticks follow curve points
           }
-          
+
           return (
             <React.Fragment key={`hour-${i}`}>
               {/* Tick mark */}
@@ -322,8 +334,8 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
               />
               {/* Label - left aligned with tick */}
               <SvgText
-                x={tickX + 2} 
-                y={svgHeight - 5} 
+                x={tickX + 2}
+                y={svgHeight - 5}
                 {...chartStyles.xAxisLabel}
               >
                 {formatHour(point.hour)}
@@ -331,13 +343,13 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
             </React.Fragment>
           );
         })}
-        
+
         {/* Last tick at 24:00 (midnight) - no label */}
         <Path
           d={`M ${LEFT_PADDING + chartWidth} ${chartHeight + TOP_PADDING} L ${LEFT_PADDING + chartWidth} ${chartHeight + TOP_PADDING - 6}`}
           {...chartStyles.xAxisTick}
         />
-        
+
         {/* X-axis line */}
         <Path
           d={`M ${LEFT_PADDING} ${chartHeight + TOP_PADDING} L ${LEFT_PADDING + chartWidth} ${chartHeight + TOP_PADDING}`}

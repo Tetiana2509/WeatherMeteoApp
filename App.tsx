@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import DataTypeSwitch, { nextDataType } from './DataTypeSwitch';
+import DataTypeSwitch from './DataTypeSwitch';
 import TemperatureUnitSwitch from './TemperatureUnitSwitch';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -16,6 +16,8 @@ import {
   ConnectedWeather,
   ConnectedWeatherRef,
   LocationInput,
+  TapArea,
+  nextDataType,
 } from './weather';
 import { COLORS } from './styling';
 
@@ -31,8 +33,12 @@ export default function App() {
     connectedWeatherRef.current?.update();
   };
 
-  const handleIconTap = () => {
-    setDataType(nextDataType(dataType));
+  const handleTap = (area: TapArea) => {
+    if (area === 'icon') {
+      setDataType(nextDataType(dataType));
+    } else if (area === 'value' && dataType === 'temperature') {
+      setTemperatureUnit(temperatureUnit === 'celsius' ? 'fahrenheit' : 'celsius');
+    }
   };
 
   return (
@@ -51,7 +57,7 @@ export default function App() {
               dataType={dataType}
               temperatureUnit={temperatureUnit}
               coords={coords}
-              onIconTap={handleIconTap}
+              onTap={handleTap}
             />
 
             <View style={styles.reloadContainer}>

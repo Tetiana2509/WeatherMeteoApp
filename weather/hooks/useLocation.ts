@@ -56,14 +56,14 @@ export function useLocation(initialLocation?: string) {
         if (!cancelled) {
           setCoords({
             ...resolved,
-            displayName: displayName,
+            displayName,
           });
           lastResolvedRef.current = normalized;
           setStatus(null);
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (!cancelled) {
-          setStatus(e?.message || 'Failed to find location');
+          setStatus((e as Error)?.message || 'Failed to find location');
         }
       }
     })();
@@ -99,7 +99,7 @@ export function useCurrentLocation() {
             newCoords.lat,
             newCoords.lon,
           );
-          if (mounted) setCoords({ ...newCoords, displayName: displayName });
+          if (mounted) setCoords({ ...newCoords, displayName });
         } catch {
           if (mounted) setCoords(newCoords);
         }

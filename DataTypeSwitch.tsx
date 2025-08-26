@@ -1,24 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, ViewStyle } from 'react-native';
-import { DataType, getDataTypeIcon } from './weather';
+import { DATA_TYPES, DataType, getDataTypeIcon } from './weather';
 import { COLORS } from './styling';
-
-// Data types with their labels in the correct order
-const DATA_TYPES: Record<DataType, string> = {
-  'temperature': 'Temperature',
-  'brightness': 'Brightness',
-  'precipitation': 'Rain',
-  'uv_index': 'UV Index',
-  'clouds': 'Clouds',
-};
-
-// Utility function to get the next data type in sequence
-export const nextDataType = (current: DataType): DataType => {
-  const dataTypes = Object.keys(DATA_TYPES) as DataType[];
-  const currentIndex = dataTypes.indexOf(current);
-  const nextIndex = (currentIndex + 1) % dataTypes.length;
-  return dataTypes[nextIndex];
-};
 
 type Props = {
   value: DataType;
