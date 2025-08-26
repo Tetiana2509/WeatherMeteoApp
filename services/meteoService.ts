@@ -9,6 +9,8 @@ export interface HourlyWeather {
   cloudcover: number[];
   sunrise: string[];
   sunset: string[];
+  timezone?: string;
+  utc_offset_seconds?: number;
 }
 
 export const getHourlyWeather = async (lat: number, lon: number): Promise<HourlyWeather> => {
@@ -30,5 +32,7 @@ export const getHourlyWeather = async (lat: number, lon: number): Promise<Hourly
     cloudcover: data.hourly.cloudcover,
     sunrise: data.daily.sunrise,
     sunset: data.daily.sunset,
+  timezone: data.timezone,
+  utc_offset_seconds: data.utc_offset_seconds,
   };
 };

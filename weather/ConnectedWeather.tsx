@@ -48,10 +48,15 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
               const times = weatherData!.time;
               const lat = lastCoords?.lat ?? 0;
               const lon = lastCoords?.lon ?? 0;
+              const tzOffsetMinutes = Math.round(
+                (weatherData?.utc_offset_seconds ?? 0) / 60,
+              );
               return computeDaylightBrightnessIndexFromArrays(times, {
                 latitude: lat,
                 longitude: lon,
-                timezoneOffsetMinutes: new Date().getTimezoneOffset() * -1,
+                // Use API-provided location timezone offset in minutes
+                timezoneOffsetMinutes: tzOffsetMinutes,
+                timesAreUTC: false,
               });
             } catch {
               return [] as number[];
@@ -99,7 +104,10 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
           throw new Error('Invalid weather data received from API');
         }
 
-        const today = new Date().toISOString().split('T')[0];
+  // Determine "today" in the location's timezone using API-provided offset
+  const tzOffsetSeconds = fullData.utc_offset_seconds || 0;
+  const nowShifted = new Date(Date.now() + tzOffsetSeconds * 1000);
+  const today = nowShifted.toISOString().split('T')[0];
 
         // Log the first few times for debugging
         // console.log("API times:", fullData.time.slice(0, 5));
@@ -162,6 +170,8 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
           ),
           sunrise: fullData.sunrise || [],
           sunset: fullData.sunset || [],
+          timezone: fullData.timezone,
+          utc_offset_seconds: fullData.utc_offset_seconds,
         };
 
         // Final validation - ensure we have valid temperature data
@@ -226,6 +236,34 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
       return <Text style={{ color: 'red', textAlign: 'center' }}>No data</Text>;
     }
 
+    // Compute current hour index in the location's local time based on API timezone
+    let currentHourIndex = 0;
+    if (weatherData?.time && weatherData.time.length > 0) {
+      const tzOffsetSeconds = weatherData.utc_offset_seconds || 0;
+      const shiftedISO = new Date(Date.now() + tzOffsetSeconds * 1000)
+        .toISOString();
+      const locHour = parseInt(shiftedISO.slice(11, 13), 10);
+      const hours = weatherData.time.map((t) => {
+        const hh = parseInt(t.slice(11, 13), 10);
+        return Number.isFinite(hh) ? hh : 0;
+      });
+      let idx = hours.findIndex((h) => h === locHour);
+      if (idx < 0) {
+        // Fallback: pick the nearest hour
+        let best = 0;
+        let bestDist = Infinity;
+        hours.forEach((h, i) => {
+          const d = Math.abs(h - locHour);
+          if (d < bestDist) {
+            bestDist = d;
+            best = i;
+          }
+        });
+        idx = best;
+      }
+      currentHourIndex = idx;
+    }
+
     return (
       <>
         {/* <Text style={{
@@ -255,7 +293,8 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
 
         <Weather
           data={convertedData}
-          currentTime={new Date().getHours()}
+          currentTime={currentHourIndex}
+          hours={weatherData?.time?.map((t) => parseInt(t.slice(11, 13), 10))}
           style={{
             marginLeft: 0,
             marginRight: 0,

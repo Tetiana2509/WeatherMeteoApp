@@ -15,9 +15,14 @@ export type BrightnessOptions = {
   longitude: number;                 // degrees (-180..180)
   /**
    * Minutes to add to UTC to get local time at the location (e.g., +120 for UTC+2).
-   * If omitted, times are assumed to already be local for the given location.
+  * If omitted, times are assumed to already be local for the given location.
    */
   timezoneOffsetMinutes?: number;
+  /**
+  * If true, provided times are UTC and will be shifted by timezoneOffsetMinutes to local.
+  * If false/omitted, times are treated as already local and won't be shifted.
+  */
+  timesAreUTC?: boolean;
 };
 
 export function computeDaylightBrightnessIndex(
@@ -27,7 +32,8 @@ export function computeDaylightBrightnessIndex(
   const tzOffset = opts.timezoneOffsetMinutes ?? 0;
   return hours.map((h) => {
     const t = coerceDate(h.time);
-    const local = new Date(t.getTime() + tzOffset * 60_000);
+    // Shift only if input times are UTC. If already local for the target timezone, skip shifting.
+    const local = opts.timesAreUTC ? new Date(t.getTime() + tzOffset * 60_000) : t;
     const alt = solarAltitudeDeg(local, opts.latitude, opts.longitude, tzOffset);
 
   // Base daylight from solar altitude (includes twilight before sunrise)

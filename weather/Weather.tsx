@@ -9,6 +9,7 @@ type WeatherProps = {
   height?: number;
   currentTime: number;
   data?: number[];
+  hours?: number[]; // local hour (0-23) for each data point, from API timezone
   style?: ViewStyle;
   dataType?:
     | 'temperature'
@@ -33,6 +34,7 @@ export default function Weather({
   height,
   currentTime,
   data,
+  hours,
   style,
   dataType = 'temperature',
   temperatureUnit = 'celsius',
@@ -81,15 +83,21 @@ export default function Weather({
       ? formatBrightness
       : formatUVIndex;
 
-  // For all types except temperature, clamp displayed labels at 0
+  // For display: temperature as-is; clouds clamped to [0,100]; others clamped to >=0
   const formatData = (value: number) => {
-    const v = dataType === 'temperature' ? value : Math.max(0, value);
+    let v = value;
+    if (dataType === 'clouds') v = Math.max(0, Math.min(100, value));
+    else if (dataType !== 'temperature') v = Math.max(0, value);
     return baseFormat(v);
   };
 
-  // For plotting: clamp values below 0 to 0 for non-temperature charts
+  // For plotting: temperature as-is; clouds clamped to [0,100]; others clamped to >=0
   const plotData = React.useMemo(() => {
     if (dataType === 'temperature') return cleanData;
+    if (dataType === 'clouds')
+      return cleanData.map((v) =>
+        typeof v === 'number' ? Math.max(0, Math.min(100, v)) : 0,
+      );
     return cleanData.map((v) => (typeof v === 'number' ? Math.max(0, v) : 0));
   }, [cleanData, dataType]);
 
@@ -205,9 +213,11 @@ export default function Weather({
         data={plotData}
         height={height}
         currentTime={safeCurrentTime}
+  hours={hours}
         formatData={formatData}
         smooth={dataType !== 'clouds'}
         amplitudeSteps={dataType === 'temperature' ? 3 : undefined}
+  fixedYDomain={dataType === 'clouds' ? { min: 0, max: 100 } : undefined}
         theme={chartTheme}
       />
     </View>

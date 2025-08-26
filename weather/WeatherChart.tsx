@@ -10,12 +10,16 @@ export interface WeatherChartProps {
   height?: number;
   /** Current time as hour index */
   currentTime: number;
+  /** Optional location-local hour (0..23) for each data point, same length as data */
+  hours?: number[];
   /** Function to format units (e.g., temperature or precipitation) */
   formatData: (value: number) => string;
   /** Whether to apply smoothing to the series (default: true) */
   smooth?: boolean;
   /** Target amplitude in Y-axis divisions: make (max-min) span exactly this many grid steps out of total steps (5). */
   amplitudeSteps?: number;
+  /** If provided, force Y-axis min/max to these values (no padding). */
+  fixedYDomain?: { min: number; max: number };
   /**
    * Theme for stroke and area gradient. If not provided, defaults are used.
    */
@@ -92,9 +96,11 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   data,
   height = 160,
   currentTime,
+  hours,
   formatData,
   smooth = true,
   amplitudeSteps,
+  fixedYDomain,
   theme,
 }) => {
   const [viewWidth, setViewWidth] = React.useState<number>(350); // Default width
@@ -135,7 +141,10 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     let chartMin: number;
     let chartMax: number;
     const totalSteps = 5; // must match Y-axis labels steps
-    if (typeof amplitudeSteps === 'number' && amplitudeSteps > 0) {
+    if (fixedYDomain && Number.isFinite(fixedYDomain.min) && Number.isFinite(fixedYDomain.max) && fixedYDomain.max > fixedYDomain.min) {
+      chartMin = fixedYDomain.min;
+      chartMax = fixedYDomain.max;
+    } else if (typeof amplitudeSteps === 'number' && amplitudeSteps > 0) {
       const amp = Math.max(1, Math.min(totalSteps, Math.floor(amplitudeSteps)));
       const delta = maxValue - minValue;
       const effectiveDelta = delta === 0 ? 1 : delta;
@@ -168,11 +177,13 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     const stepX = availableChartWidth / Math.max(1, data.length - 1);
     
     // Create points for the curve
-  const points = series.map((value, i) => ({
+    const points = series.map((value, i) => ({
       x: LEFT_PADDING + curveHorizontalPadding + (i * stepX),
       y: TOP_PADDING + (safeChartMax - value) / safeChartRange * chartHeight,
       value,
-      hour: i
+      hour: Array.isArray(hours) && Number.isFinite(hours[i] as number)
+        ? (hours[i] as number)
+        : i,
     }));
     
     // Create Y-axis labels
@@ -194,7 +205,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
       maxValue: safeChartMax,
       currentHour: Math.round(currentTime)
     };
-  }, [data, viewWidth, height, currentTime, smooth]);
+  }, [data, viewWidth, height, currentTime, smooth, amplitudeSteps, fixedYDomain, hours]);
 
   if (!data?.length || !processedData) {
     return (
@@ -299,7 +310,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
         
         {/* X-axis labels and ticks */}
         {points.map((point, i) => {
-          const showLabel = i % 6 === 0 && i < 24; // Show every 6 hours (0, 6, 12, 18)
+          const showLabel = i % 6 === 0; // Show every 6 points (~hours)
           if (!showLabel) return null;
           
           const axisY = chartHeight + TOP_PADDING;
