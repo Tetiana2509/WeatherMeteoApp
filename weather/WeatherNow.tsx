@@ -12,6 +12,11 @@ interface WeatherNowProps {
   formatData: (value: number) => string;
   /** Callback when icon is tapped */
   onIconTap?: () => void;
+  /** If true, show sunrise/sunset instead of H/L (for brightness) */
+  showSunTimes?: boolean;
+  /** Local time strings like YYYY-MM-DDTHH:MM for sunrise/sunset */
+  sunriseTime?: string | null;
+  sunsetTime?: string | null;
 }
 
 const WeatherNow: React.FC<WeatherNowProps> = ({
@@ -21,7 +26,16 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
   lowTemp,
   formatData,
   onIconTap,
+  showSunTimes,
+  sunriseTime,
+  sunsetTime,
 }) => {
+  const formatHHmm = React.useCallback((s?: string | null) => {
+    if (!s || typeof s !== 'string' || s.length < 16) return '--:--';
+    // Expecting local string like 2025-08-27T06:12
+    return s.slice(11, 16);
+  }, []);
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -40,8 +54,17 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
       >
         {formatData(currentTemp)}
       </MadoText>
-      <MadoText style={styles.tempRange}>H {formatData(highTemp)}</MadoText>
-      <MadoText style={styles.tempRange}>L {formatData(lowTemp)}</MadoText>
+      {showSunTimes ? (
+        <>
+          <MadoText style={styles.tempRange}>🌅 {formatHHmm(sunriseTime)}</MadoText>
+          <MadoText style={styles.tempRange}>🌇 {formatHHmm(sunsetTime)}</MadoText>
+        </>
+      ) : (
+        <>
+          <MadoText style={styles.tempRange}>H {formatData(highTemp)}</MadoText>
+          <MadoText style={styles.tempRange}>L {formatData(lowTemp)}</MadoText>
+        </>
+      )}
     </View>
   );
 };

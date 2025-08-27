@@ -19,6 +19,8 @@ type WeatherProps = {
     | 'brightness';
   temperatureUnit?: 'celsius' | 'fahrenheit';
   onIconTap?: () => void;
+  sunriseTime?: string | null;
+  sunsetTime?: string | null;
 };
 
 const formatTemperature = (value: number): string => `${Math.round(value)}°`;
@@ -39,6 +41,8 @@ export default function Weather({
   dataType = 'temperature',
   temperatureUnit = 'celsius',
   onIconTap,
+  sunriseTime,
+  sunsetTime,
 }: WeatherProps) {
   // Validate and clean the input data
   const cleanData = React.useMemo(() => {
@@ -208,6 +212,9 @@ export default function Weather({
         lowTemp={Math.min(...cleanData)}
         formatData={formatData}
         onIconTap={onIconTap}
+  showSunTimes={dataType === 'brightness'}
+  sunriseTime={dataType === 'brightness' ? sunriseTime : undefined}
+  sunsetTime={dataType === 'brightness' ? sunsetTime : undefined}
       />
       <WeatherChart
         data={plotData}

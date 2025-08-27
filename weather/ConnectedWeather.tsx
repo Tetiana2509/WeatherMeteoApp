@@ -104,15 +104,12 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
           throw new Error('Invalid weather data received from API');
         }
 
-  // Determine "today" in the location's timezone using API-provided offset
-  const tzOffsetSeconds = fullData.utc_offset_seconds || 0;
-  const nowShifted = new Date(Date.now() + tzOffsetSeconds * 1000);
-  const today = nowShifted.toISOString().split('T')[0];
+        // Determine "today" in the location's timezone using API-provided offset
+        const tzOffsetSeconds = fullData.utc_offset_seconds || 0;
+        const nowShifted = new Date(Date.now() + tzOffsetSeconds * 1000);
+        const today = nowShifted.toISOString().split('T')[0];
 
-        // Log the first few times for debugging
-        // console.log("API times:", fullData.time.slice(0, 5));
-        // console.log("Today:", today);
-
+        // Build indices for the hours that are on today's local date
         let filteredIndices = fullData.time
           .map((time, index) => ({ time, index }))
           .filter(({ time }) => time && time.startsWith(today))
@@ -191,10 +188,18 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
         // console.log("Filtered temperatures:", filteredData.temperature_2m);
       } catch (error) {
         console.error('Weather fetch error:', error);
-        Alert.alert(
-          'Error',
-          error instanceof Error ? error.message : 'Failed to get weather',
-        );
+        if (
+          error instanceof Error &&
+          error.message === 'Invalid weather data received from API'
+        ) {
+          // Suppress generic alert; show inline "No data" state instead
+          setWeatherData(null);
+        } else {
+          Alert.alert(
+            'Error',
+            error instanceof Error ? error.message : 'Failed to get weather',
+          );
+        }
       } finally {
         setLoading(false);
       }
@@ -234,6 +239,20 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
       weatherData.temperature_2m.length === 0
     ) {
       return <Text style={{ color: 'red', textAlign: 'center' }}>No data</Text>;
+    }
+
+    // Choose sunrise/sunset for the same local day as the filtered hourly series
+    let sunriseTime: string | null = null;
+    let sunsetTime: string | null = null;
+    const seriesDate = weatherData.time?.[0]?.slice(0, 10) || null;
+    if (seriesDate) {
+      sunriseTime = (weatherData.sunrise || []).find((s) => s && s.startsWith(seriesDate))
+        || (weatherData.sunrise?.[0] ?? null);
+      sunsetTime = (weatherData.sunset || []).find((s) => s && s.startsWith(seriesDate))
+        || (weatherData.sunset?.[0] ?? null);
+    } else {
+      sunriseTime = weatherData.sunrise?.[0] ?? null;
+      sunsetTime = weatherData.sunset?.[0] ?? null;
     }
 
     // Compute current hour index in the location's local time based on API timezone
@@ -304,6 +323,8 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
           dataType={dataType}
           temperatureUnit={temperatureUnit}
           onIconTap={onIconTap}
+          sunriseTime={sunriseTime}
+          sunsetTime={sunsetTime}
         />
 
         {/* <Text style={{ color: "aqua" }}>
