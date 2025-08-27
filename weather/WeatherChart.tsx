@@ -191,7 +191,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     const yLabels = Array.from({ length: yAxisSteps + 1 }, (_, i) => {
       const value = safeChartMax - (safeChartRange * i) / yAxisSteps; // Reverse order: start from max, go to min
       return {
-        value: Math.round(value),
+  value,
         y: TOP_PADDING + (i * chartHeight) / yAxisSteps
       };
     });

@@ -84,7 +84,7 @@ export default function Weather({
       : dataType === 'clouds'
       ? formatClouds
       : dataType === 'brightness'
-      ? formatBrightness
+  ? formatBrightness
       : formatUVIndex;
 
   // For display: temperature as-is; clouds clamped to [0,100]; others clamped to >=0
@@ -224,7 +224,13 @@ export default function Weather({
         formatData={formatData}
         smooth={dataType !== 'clouds'}
         amplitudeSteps={dataType === 'temperature' ? 3 : undefined}
-  fixedYDomain={dataType === 'clouds' ? { min: 0, max: 100 } : undefined}
+        fixedYDomain={
+          dataType === 'clouds'
+            ? { min: 0, max: 100 }
+            : dataType === 'brightness'
+            ? { min: 0, max: 1 }
+            : undefined
+        }
         theme={chartTheme}
       />
     </View>
