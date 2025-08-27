@@ -1,39 +1,44 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   SafeAreaView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
-  Alert,
-} from "react-native";
-import DataTypeSwitch, { DataType } from "./weather/DataTypeSwitch";
-import TemperatureUnitSwitch from "./weather/TemperatureUnitSwitch";
-import ConnectedWeather, { ConnectedWeatherRef } from "./weather/ConnectedWeather";
+} from 'react-native';
+import DataTypeSwitch from './DataTypeSwitch';
+import TemperatureUnitSwitch from './TemperatureUnitSwitch';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  DataType,
+  TemperatureUnit,
+  Coords,
+  ConnectedWeather,
+  ConnectedWeatherRef,
+  LocationInput,
+  TapArea,
+  nextDataType,
+} from './weather';
+import { COLORS } from './styling';
 
 export default function App() {
-  const [query, setQuery] = useState("Berlin");
+  const [coords, setCoords] = useState<Coords | null>(null);
   const [dataType, setDataType] = useState<DataType>('temperature');
-  const [temperatureUnit, setTemperatureUnit] = useState<'celsius' | 'fahrenheit'>('celsius');
-  const [coords, setCoords] = useState<{
-    lat: number;
-    lon: number;
-  } | null>(null);
+  const [temperatureUnit, setTemperatureUnit] =
+    useState<TemperatureUnit>('celsius');
 
   const connectedWeatherRef = useRef<ConnectedWeatherRef>(null);
 
-  const handleGeolocation = async () => {
-    connectedWeatherRef.current?.getLocation();
-  };
-
-  const handleSearch = () => {
-    connectedWeatherRef.current?.search(query);
-  };
-
   const handleUpdate = () => {
     connectedWeatherRef.current?.update();
+  };
+
+  const handleTap = (area: TapArea) => {
+    if (area === 'icon') {
+      setDataType(nextDataType(dataType));
+    } else if (area === 'value' && dataType === 'temperature') {
+      setTemperatureUnit(temperatureUnit === 'celsius' ? 'fahrenheit' : 'celsius');
+    }
   };
 
   return (
@@ -41,103 +46,84 @@ export default function App() {
       <View style={styles.container}>
         <Text style={styles.title}>Today's Weather</Text>
 
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="City, country or postal code"
-            value={query}
-            onChangeText={setQuery}
-            returnKeyType="search"
-            onSubmitEditing={handleSearch}
-          />
-          <View style={styles.iconsContainer}>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={handleGeolocation}
-              accessibilityRole="button"
-              accessibilityLabel="Use my location"
-            >
-              <Ionicons name="location" size={22} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={handleUpdate}
-              accessibilityRole="button"
-              accessibilityLabel="Update"
-            >
-              <Ionicons name="refresh" size={22} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <LocationInput coords={coords} onCoordsChange={setCoords} />
 
-        {/* Data Type Toggle */}
-        <DataTypeSwitch value={dataType} onChange={setDataType} />
+        {coords && (
+          <>
+            <DataTypeSwitch value={dataType} onChange={setDataType} />
 
-        {/* Temperature Unit Toggle - показывается только для температуры */}
-        {dataType === 'temperature' && (
-          <TemperatureUnitSwitch value={temperatureUnit} onChange={setTemperatureUnit} />
+            <ConnectedWeather
+              ref={connectedWeatherRef}
+              dataType={dataType}
+              temperatureUnit={temperatureUnit}
+              coords={coords}
+              onTap={handleTap}
+            />
+
+            <View style={styles.reloadContainer}>
+              {dataType === 'temperature' && (
+                <TemperatureUnitSwitch
+                  value={temperatureUnit}
+                  onChange={setTemperatureUnit}
+                  style={styles.temperatureUnitInline}
+                />
+              )}
+              <TouchableOpacity
+                style={styles.reloadButton}
+                onPress={handleUpdate}
+                accessibilityRole="button"
+                accessibilityLabel="Reload weather data"
+              >
+                <Ionicons name="refresh" size={20} color={COLORS.controlsFG} />
+                <Text style={styles.reloadButtonText}>Reload</Text>
+              </TouchableOpacity>
+            </View>
+          </>
         )}
 
-        <ConnectedWeather
-          ref={connectedWeatherRef}
-          query={query}
-          dataType={dataType}
-          temperatureUnit={temperatureUnit}
-          coords={coords}
-          onCoordsChange={setCoords}
-          onQueryChange={setQuery}
-        />
+        {!coords && (
+          <Text style={{ color: '#aaa', textAlign: 'center', marginTop: 20 }}>
+            Enter a location or use your current location to see weather data
+          </Text>
+        )}
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#333333" },
-  container: { flex: 1, padding: 20 },
+  screen: { flex: 1, backgroundColor: '#333333' },
+  container: { flex: 1, padding: 20, gap: 4 },
   title: {
     fontSize: 22,
-    fontWeight: "bold",
-    textAlign: "center",
+    fontWeight: 'bold',
+    textAlign: 'center',
     marginBottom: 12,
-    color: "white",
+    color: 'white',
   },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 44,
-    backgroundColor: "#fff",
-    flex: 1,
-    marginRight: 8,
-  },
-  iconsContainer: {
+  reloadContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    gap: 16,
   },
-  iconButton: {
-    backgroundColor: "#2C2C2E",
-    padding: 10,
+  temperatureUnitInline: {
+    marginBottom: 0,
+  },
+  reloadButton: {
+    backgroundColor: COLORS.controlsBG,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    width: 44,
-    height: 44,
-    marginLeft: 6,
+    gap: 8,
   },
-  button: {
-    backgroundColor: "#007AFF",
-    padding: 12,
-    borderRadius: 25,
-    alignItems: "center",
-    marginBottom: 10,
+  reloadButtonText: {
+    color: COLORS.controlsFG,
+    fontSize: 16,
+    fontWeight: '600',
   },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  error: { color: "red", textAlign: "center" },
 });

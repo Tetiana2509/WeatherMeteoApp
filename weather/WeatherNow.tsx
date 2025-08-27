@@ -1,7 +1,8 @@
 // WeatherNow.tsx
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { MadoText } from './Controls';
+import { TapArea } from './types';
 
 interface WeatherNowProps {
   icon: React.ReactNode;
@@ -10,6 +11,13 @@ interface WeatherNowProps {
   lowTemp: number;
   /** Function to format units (e.g., temperature or precipitation) */
   formatData: (value: number) => string;
+  /** If true, show sunrise/sunset instead of H/L (for brightness) */
+  showSunTimes?: boolean;
+  /** Local time strings like YYYY-MM-DDTHH:MM for sunrise/sunset */
+  sunriseTime?: string | null;
+  sunsetTime?: string | null;
+  /** Callback when an area is tapped */
+  onTap?: (area: TapArea) => void;
 }
 
 const WeatherNow: React.FC<WeatherNowProps> = ({
@@ -18,15 +26,53 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
   highTemp,
   lowTemp,
   formatData,
+  showSunTimes,
+  sunriseTime,
+  sunsetTime,
+  onTap,
 }) => {
+  const formatHHmm = React.useCallback((s?: string | null) => {
+    if (!s || typeof s !== 'string' || s.length < 16) return '--:--';
+    // Expecting local string like 2025-08-27T06:12
+    return s.slice(11, 16);
+  }, []);
+
   return (
     <View style={styles.container}>
-      <View style={styles.iconContainer}>{icon}</View>
-      <MadoText style={styles.currentTemp} numberOfLines={1} adjustsFontSizeToFit>
-        {formatData(currentTemp)}
-      </MadoText>
-      <MadoText style={styles.tempRange}>H {formatData(highTemp)}</MadoText>
-      <MadoText style={styles.tempRange}>L {formatData(lowTemp)}</MadoText>
+      <TouchableOpacity
+        style={styles.iconContainer}
+        onPress={() => onTap?.('icon')}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Switch data type"
+      >
+        {icon}
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => onTap?.('value')}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Switch data type"
+      >
+        <MadoText
+          style={styles.currentTemp}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {formatData(currentTemp)}
+        </MadoText>
+      </TouchableOpacity>
+      {showSunTimes ? (
+        <>
+          <MadoText style={styles.tempRange}>🌅 {formatHHmm(sunriseTime)}</MadoText>
+          <MadoText style={styles.tempRange}>🌇 {formatHHmm(sunsetTime)}</MadoText>
+        </>
+      ) : (
+        <>
+          <MadoText style={styles.tempRange}>H {formatData(highTemp)}</MadoText>
+          <MadoText style={styles.tempRange}>L {formatData(lowTemp)}</MadoText>
+        </>
+      )}
     </View>
   );
 };
@@ -47,5 +93,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 8,
   },
-  tempRange: { fontSize: 13, fontWeight: '600', color: '#9a9a9a', marginBottom: 2 },
+  tempRange: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#9a9a9a',
+    marginBottom: 2,
+  },
 });
