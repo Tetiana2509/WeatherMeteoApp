@@ -3,30 +3,34 @@ import React, {
   useState,
   useImperativeHandle,
   forwardRef,
+  useCallback,
+  useRef,
 } from 'react';
-import { View, Text, ActivityIndicator, Alert } from 'react-native';
-import { getHourlyWeather, HourlyWeather } from '../services/meteoService';
+import { Text, ActivityIndicator, Alert, ViewStyle } from 'react-native';
+import { getHourlyWeather, HourlyWeather } from './services/meteoService';
 import Weather from './Weather';
-import { computeDaylightBrightnessIndexFromArrays } from '../services/brightnessIndex';
-import { useCache } from '../hooks/useCache';
-import { DataType, TemperatureUnit, Coords, coordsEqual } from './WeatherTypes';
+import { computeDaylightBrightnessIndexFromArrays } from './services/brightnessIndex';
+import { useCache } from './hooks/useCache';
+import { DataType, TemperatureUnit, Coords, coordsEqual, TapArea } from './types';
 
 type Props = {
   dataType: DataType;
   temperatureUnit: TemperatureUnit;
   coords?: Coords | null;
-  onIconTap?: () => void;
+  onTap?: (area: TapArea) => void;
+  currentTime?: number;
+  style?: ViewStyle;
 };
 
 export type ConnectedWeatherRef = {
   update: () => Promise<void>;
 };
 
-const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
-  ({ dataType, temperatureUnit, coords, onIconTap }, ref) => {
+export const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
+  ({ dataType, temperatureUnit, coords, onTap, currentTime, style }, ref) => {
     const [weatherData, setWeatherData] = useState<HourlyWeather | null>(null);
     const [loading, setLoading] = useState(false);
-    const [lastCoords, setLastCoords] = useState<Coords | null>(null);
+    const lastCoordsRef = useRef<Coords | null>(null);
 
     // Initialize cache hook with 5-minute TTL
     const weatherCache = useCache<HourlyWeather>({ ttlMinutes: 5 });
@@ -36,33 +40,29 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
       weatherData == null
         ? []
         : dataType === 'precipitation'
-        ? weatherData.precipitation
-        : dataType === 'uv_index'
-        ? weatherData.uv_index
-        : dataType === 'clouds'
-        ? weatherData.cloudcover
-        : dataType === 'brightness'
-        ? (() => {
-            // Compute brightness index 0..1 using solar altitude and conditions
-            try {
-              const times = weatherData!.time;
-              const lat = lastCoords?.lat ?? 0;
-              const lon = lastCoords?.lon ?? 0;
-              const tzOffsetMinutes = Math.round(
-                (weatherData?.utc_offset_seconds ?? 0) / 60,
-              );
-              return computeDaylightBrightnessIndexFromArrays(times, {
-                latitude: lat,
-                longitude: lon,
-                // Use API-provided location timezone offset in minutes
-                timezoneOffsetMinutes: tzOffsetMinutes,
-                timesAreUTC: false,
-              });
-            } catch {
-              return [] as number[];
-            }
-          })()
-        : weatherData.temperature_2m;
+          ? weatherData.precipitation
+          : dataType === 'uv_index'
+            ? weatherData.uv_index
+            : dataType === 'clouds'
+              ? weatherData.cloudcover
+              : dataType === 'brightness'
+                ? (() => {
+                  // Compute brightness index 0..1 using solar altitude and conditions
+                  try {
+                    const times = weatherData!.time;
+                    const lat = lastCoordsRef.current?.lat ?? 0;
+                    const lon = lastCoordsRef.current?.lon ?? 0;
+                    return computeDaylightBrightnessIndexFromArrays(times, {
+                      latitude: lat,
+                      longitude: lon,
+                      timezoneOffsetMinutes:
+                        new Date().getTimezoneOffset() * -1,
+                    });
+                  } catch {
+                    return [] as number[];
+                  }
+                })()
+                : weatherData.temperature_2m;
 
     // verify data
     let convertedData = selectedData;
@@ -81,7 +81,7 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
       );
     }
 
-    const fetchWeather = async (
+    const fetchWeather = useCallback(async (
       lat: number,
       lon: number,
       forceRefresh: boolean = false,
@@ -203,31 +203,26 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
       } finally {
         setLoading(false);
       }
-    };
+    }, [weatherCache]);
 
-    const handleUpdate = async () => {
-      if (lastCoords) {
-        await fetchWeather(lastCoords.lat, lastCoords.lon, true);
+    const handleUpdate = useCallback(async () => {
+      if (lastCoordsRef.current) {
+        await fetchWeather(lastCoordsRef.current.lat, lastCoordsRef.current.lon, true);
       }
-    };
+    }, [fetchWeather]);
 
     useImperativeHandle(ref, () => ({
       update: handleUpdate,
     }));
 
     // Effect to handle external coordinate changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
-      console.log(
-        'ConnectedWeather received coords:',
-        coords,
-        'lastCoords:',
-        lastCoords,
-      );
-      if (coords && !coordsEqual(coords, lastCoords)) {
-        setLastCoords(coords);
-        fetchWeather(coords.lat, coords.lon);
+      if (!coordsEqual(coords, lastCoordsRef.current)) {
+        lastCoordsRef.current = coords ?? null;
+        handleUpdate();
       }
-    }, [coords]);
+    }, [coords, handleUpdate]);
 
     if (loading) {
       return <ActivityIndicator size="large" style={{ marginTop: 20 }} />;
@@ -282,49 +277,21 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
       }
       currentHourIndex = idx;
     }
+    
+    currentTime ??= new Date().getHours();
 
     return (
       <>
-        {/* <Text style={{
-        textAlign: "center",
-        fontSize: 16,
-        marginBottom: 4,
-        color: "#EEE",
-      }}>
-        🌅 Sunrise:{" "}
-        {new Date(weatherData.sunrise[0]).toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </Text>
-      <Text style={{
-        textAlign: "center",
-        fontSize: 16,
-        marginBottom: 4,
-        color: "#EEE",
-      }}>
-        🌇 Sunset:{" "}
-        {new Date(weatherData.sunset[0]).toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </Text> */}
-
         <Weather
           data={convertedData}
           currentTime={currentHourIndex}
           hours={weatherData?.time?.map((t) => parseInt(t.slice(11, 13), 10))}
-          style={{
-            marginLeft: 0,
-            marginRight: 0,
-            marginTop: 0,
-            marginBottom: 0,
-          }}
           dataType={dataType}
           temperatureUnit={temperatureUnit}
-          onIconTap={onIconTap}
           sunriseTime={sunriseTime}
           sunsetTime={sunsetTime}
+          style={style}
+          onTap={onTap}
         />
 
         {/* <Text style={{ color: "aqua" }}>
@@ -343,8 +310,6 @@ const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
     );
   },
 );
-
-export default ConnectedWeather;
 
 function clamp01(v: number) {
   return Math.max(0, Math.min(1, v));

@@ -1,5 +1,5 @@
 export const getCoordinatesByQuery = async (
-  query: string
+  query: string,
 ): Promise<{ lat: number; lon: number } | null> => {
   try {
     const trimmedQuery = query.trim();
@@ -12,7 +12,7 @@ export const getCoordinatesByQuery = async (
 
     let response = await fetch(
       `https://nominatim.openstreetmap.org/search?${params.toString()}`,
-      { headers: { 'Accept-Language': 'en' } }
+      { headers: { 'Accept-Language': 'en' } },
     );
 
     let data = await response.json();
@@ -23,7 +23,7 @@ export const getCoordinatesByQuery = async (
     const match = trimmedQuery.match(/^(\d{4,6}),?\s*(\w+)?$/);
     if (match) {
       const postalcode = match[1];
-      const country = match[2] || ''; 
+      const country = match[2] || '';
       if (!country) {
         throw new Error('Please add a country, e.g. "12557, Germany"');
       }
@@ -37,7 +37,7 @@ export const getCoordinatesByQuery = async (
 
       response = await fetch(
         `https://nominatim.openstreetmap.org/search?${params.toString()}`,
-        { headers: { 'Accept-Language': 'en' } }
+        { headers: { 'Accept-Language': 'en' } },
       );
 
       data = await response.json();
@@ -47,7 +47,7 @@ export const getCoordinatesByQuery = async (
     }
 
     throw new Error('City or postal code not found');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Geo error:', error);
     throw error;
   }
@@ -55,7 +55,7 @@ export const getCoordinatesByQuery = async (
 
 export const getPlaceNameByCoordinates = async (
   lat: number,
-  lon: number
+  lon: number,
 ): Promise<string> => {
   try {
     const params = new URLSearchParams({
@@ -68,7 +68,7 @@ export const getPlaceNameByCoordinates = async (
 
     const response = await fetch(
       `https://nominatim.openstreetmap.org/reverse?${params.toString()}`,
-      { headers: { 'Accept-Language': 'en' } }
+      { headers: { 'Accept-Language': 'en' } },
     );
     const data = await response.json();
 

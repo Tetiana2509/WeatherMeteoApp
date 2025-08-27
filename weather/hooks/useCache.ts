@@ -31,7 +31,7 @@ export function useCache<T>(config: CacheConfig = {}) {
 
     const now = Date.now();
     const isExpired = now - entry.timestamp > ttlMinutes * 60 * 1000;
-    
+
     if (isExpired) {
       // Remove expired entry
       setCache(prev => {
@@ -51,8 +51,8 @@ export function useCache<T>(config: CacheConfig = {}) {
       ...prev,
       [stringKey]: {
         data,
-        timestamp: Date.now()
-      }
+        timestamp: Date.now(),
+      },
     }));
   }, [keyToString]);
 
@@ -63,7 +63,7 @@ export function useCache<T>(config: CacheConfig = {}) {
   const executeWithCache = useCallback(async (
     key: CacheKey,
     requestFunction: () => Promise<T>,
-    forceRefresh: boolean = false
+    forceRefresh: boolean = false,
   ): Promise<T> => {
     // Check cache first (unless force refresh is requested)
     if (!forceRefresh) {
@@ -83,6 +83,6 @@ export function useCache<T>(config: CacheConfig = {}) {
     getCachedData,
     setCachedData,
     clearCache,
-    executeWithCache
+    executeWithCache,
   };
 }

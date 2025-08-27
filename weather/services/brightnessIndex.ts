@@ -27,7 +27,7 @@ export type BrightnessOptions = {
 
 export function computeDaylightBrightnessIndex(
   hours: HourlyInputs[],
-  opts: BrightnessOptions
+  opts: BrightnessOptions,
 ): number[] {
   const tzOffset = opts.timezoneOffsetMinutes ?? 0;
   return hours.map((h) => {
@@ -36,9 +36,9 @@ export function computeDaylightBrightnessIndex(
     const local = opts.timesAreUTC ? new Date(t.getTime() + tzOffset * 60_000) : t;
     const alt = solarAltitudeDeg(local, opts.latitude, opts.longitude, tzOffset);
 
-  // Base daylight from solar altitude (includes twilight before sunrise)
-  const base = daylightFactorFromAltitude(alt);
-  return clamp01(base);
+    // Base daylight from solar altitude (includes twilight before sunrise)
+    const base = daylightFactorFromAltitude(alt);
+    return clamp01(base);
   });
 }
 
@@ -118,7 +118,7 @@ function toDeg(rad: number): number { return (rad * 180) / Math.PI; }
 // Convenience: compute index array from primitive arrays
 export function computeDaylightBrightnessIndexFromArrays(
   times: Array<Date | string | number>,
-  opts: BrightnessOptions
+  opts: BrightnessOptions,
 ): number[] {
   const hours: HourlyInputs[] = times.map((t) => ({ time: t }));
   return computeDaylightBrightnessIndex(hours, opts);

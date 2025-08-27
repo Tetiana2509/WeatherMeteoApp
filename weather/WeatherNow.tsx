@@ -2,6 +2,7 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { MadoText } from './Controls';
+import { TapArea } from './types';
 
 interface WeatherNowProps {
   icon: React.ReactNode;
@@ -10,13 +11,13 @@ interface WeatherNowProps {
   lowTemp: number;
   /** Function to format units (e.g., temperature or precipitation) */
   formatData: (value: number) => string;
-  /** Callback when icon is tapped */
-  onIconTap?: () => void;
   /** If true, show sunrise/sunset instead of H/L (for brightness) */
   showSunTimes?: boolean;
   /** Local time strings like YYYY-MM-DDTHH:MM for sunrise/sunset */
   sunriseTime?: string | null;
   sunsetTime?: string | null;
+  /** Callback when an area is tapped */
+  onTap?: (area: TapArea) => void;
 }
 
 const WeatherNow: React.FC<WeatherNowProps> = ({
@@ -25,10 +26,10 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
   highTemp,
   lowTemp,
   formatData,
-  onIconTap,
   showSunTimes,
   sunriseTime,
   sunsetTime,
+  onTap,
 }) => {
   const formatHHmm = React.useCallback((s?: string | null) => {
     if (!s || typeof s !== 'string' || s.length < 16) return '--:--';
@@ -40,20 +41,27 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.iconContainer}
-        onPress={onIconTap}
+        onPress={() => onTap?.('icon')}
         activeOpacity={0.7}
         accessibilityRole="button"
         accessibilityLabel="Switch data type"
       >
         {icon}
       </TouchableOpacity>
-      <MadoText
-        style={styles.currentTemp}
-        numberOfLines={1}
-        adjustsFontSizeToFit
+      <TouchableOpacity
+        onPress={() => onTap?.('value')}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Switch data type"
       >
-        {formatData(currentTemp)}
-      </MadoText>
+        <MadoText
+          style={styles.currentTemp}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {formatData(currentTemp)}
+        </MadoText>
+      </TouchableOpacity>
       {showSunTimes ? (
         <>
           <MadoText style={styles.tempRange}>🌅 {formatHHmm(sunriseTime)}</MadoText>
