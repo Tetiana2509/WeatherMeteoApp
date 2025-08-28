@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import WeatherNow from './WeatherNow';
 import WeatherChart from './WeatherChart';
+import RainBarChart from './RainBarChart';
 import { getDataTypeIcon } from './utils';
 import { DataType, TapArea, TemperatureUnit } from './types';
 
@@ -209,23 +210,43 @@ export default function Weather({
         sunsetTime={dataType === 'brightness' ? sunsetTime : undefined}
         onTap={onTap}
       />
-      <WeatherChart
-        data={plotData}
-        height={height}
-        currentTime={safeCurrentTime}
-        hours={hours}
-        formatData={formatData}
-        smooth={dataType !== 'clouds'}
-        amplitudeSteps={dataType === 'temperature' ? 3 : undefined}
-        fixedYDomain={
-          dataType === 'clouds'
-            ? { min: 0, max: 100 }
-            : dataType === 'brightness'
-            ? { min: 0, max: 1 }
-            : undefined
-        }
-        theme={chartTheme}
-      />
+      {dataType === 'precipitation' ? (
+        <RainBarChart
+          data={plotData}
+          height={height}
+          currentTime={safeCurrentTime}
+          hours={hours}
+          formatData={formatData}
+          theme={{
+            barColor: '#4FC3F7',
+            barHighlightColor: '#0288D1',
+            gradient: {
+              topColor: '#B3E5FC',
+              bottomColor: '#0288D1',
+              topOpacity: 0.9,
+              bottomOpacity: 0.5,
+            },
+          }}
+        />
+      ) : (
+        <WeatherChart
+          data={plotData}
+          height={height}
+          currentTime={safeCurrentTime}
+          hours={hours}
+          formatData={formatData}
+          smooth={dataType !== 'clouds'}
+          amplitudeSteps={dataType === 'temperature' ? 3 : undefined}
+          fixedYDomain={
+            dataType === 'clouds'
+              ? { min: 0, max: 100 }
+              : dataType === 'brightness'
+              ? { min: 0, max: 1 }
+              : undefined
+          }
+          theme={chartTheme}
+        />
+      )}
     </View>
   );
 }
