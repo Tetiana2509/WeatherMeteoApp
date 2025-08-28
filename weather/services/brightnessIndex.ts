@@ -31,7 +31,10 @@ export function computeDaylightBrightnessIndex(
 ): number[] {
   const tzOffset = opts.timezoneOffsetMinutes ?? 0;
   return hours.map((h) => {
-    const t = coerceDate(h.time);
+  // If times are already local (default), prefer estimating TZ from longitude
+  // to avoid accidentally using the device timezone passed in as tzOffset.
+  const preferLon = !opts.timesAreUTC;
+  const t = coerceDateWithTimezone(h.time, tzOffset, opts.longitude, preferLon);
     // Shift only if input times are UTC. If already local for the target timezone, skip shifting.
     const local = opts.timesAreUTC ? new Date(t.getTime() + tzOffset * 60_000) : t;
     const alt = solarAltitudeDeg(local, opts.latitude, opts.longitude, tzOffset);
@@ -105,6 +108,33 @@ function coerceDate(t: Date | string | number): Date {
   const d = new Date(t);
   if (isNaN(d.getTime())) throw new Error('Invalid time');
   return d;
+}
+
+// If a time string lacks timezone (e.g., "YYYY-MM-DDTHH:mm"), append the intended
+// offset so that the Date reflects the location's local clock instead of device timezone.
+function coerceDateWithTimezone(t: Date | string | number, tzOffsetMin: number, lonDeg: number, preferLongitudeOffset: boolean = false): Date {
+  if (typeof t !== 'string') return coerceDate(t);
+  const hasTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(t);
+  if (hasTz) return new Date(t);
+  // If caller indicates the string represents local wall time (common for Open‑Meteo),
+  // prefer estimating offset from longitude to avoid using the device offset.
+  // Otherwise use provided tzOffsetMin.
+  let offsetMin: number;
+  if (preferLongitudeOffset) {
+    offsetMin = Math.round((lonDeg || 0) / 15) * 60;
+  } else {
+    offsetMin = Number.isFinite(tzOffsetMin) ? tzOffsetMin : 0;
+  }
+  const offsetStr = minutesToTzOffset(offsetMin);
+  return new Date(`${t}${offsetStr}`);
+}
+
+function minutesToTzOffset(mins: number): string {
+  const sign = mins >= 0 ? '+' : '-';
+  const abs = Math.abs(mins);
+  const hh = Math.floor(abs / 60).toString().padStart(2, '0');
+  const mm = (abs % 60).toString().padStart(2, '0');
+  return `${sign}${hh}:${mm}`;
 }
 
 function clamp(min: number, v: number, max: number): number {
