@@ -101,12 +101,14 @@ export default function Weather({
   // Per-metric chart theme (stroke + area gradient)
   const chartTheme = React.useMemo(() => {
     switch (dataType) {
-      case 'temperature':
-        // Value-based gradient similar to clouds (unit-aware)
+      case 'temperature': {
+        // Value-based gradient: красный (очень жарко) → оранжевый → жёлтый → голубой → синий
         const tempStops =
           temperatureUnit === 'fahrenheit'
             ? [
-              { value: 104, color: '#FB8C00', opacity: 0.9 }, // 40°C deep orange
+              { value: 111, color: '#FF5252', opacity: 0.95 }, // 44°C red
+              { value: 104, color: '#FF5252', opacity: 0.95 }, // 40°C red
+              { value: 97, color: '#FB8C00', opacity: 0.9 }, // 36°C deep orange
               { value: 86, color: '#FFA726', opacity: 0.88 }, // 30°C orange
               { value: 68, color: '#FDD835', opacity: 0.82 }, // 20°C yellow
               { value: 50, color: '#26C6DA', opacity: 0.68 }, // 10°C teal
@@ -114,7 +116,9 @@ export default function Weather({
               { value: 14, color: '#0D47A1', opacity: 0.58 }, // -10°C deep blue
             ]
             : [
-              { value: 40, color: '#FB8C00', opacity: 0.9 }, // deep orange
+              { value: 44, color: '#FF5252', opacity: 0.95 }, // red
+              { value: 40, color: '#FF5252', opacity: 0.95 }, // red
+              { value: 36, color: '#FB8C00', opacity: 0.9 }, // deep orange
               { value: 30, color: '#FFA726', opacity: 0.88 }, // orange
               { value: 20, color: '#FDD835', opacity: 0.82 }, // yellow
               { value: 10, color: '#26C6DA', opacity: 0.68 }, // teal
@@ -123,12 +127,13 @@ export default function Weather({
             ];
         return {
           strokeColor: '#FFA726',
-          gradientTopColor: '#FFE082',
+          gradientTopColor: '#FF5252',
           gradientBottomColor: '#4FC3F7',
-          gradientTopOpacity: 0.85,
+          gradientTopOpacity: 0.95,
           gradientBottomOpacity: 0.4,
           gradientValueStops: tempStops,
         };
+      }
       case 'precipitation':
         return {
           strokeColor: '#29B6F6',
@@ -184,9 +189,9 @@ export default function Weather({
           gradientBottomOpacity: 0.5,
           // For brightness index values 0..1 (value-aligned like UV and Clouds)
           gradientValueStops: [
-            { value: 1.0, color: '#f2f2e2', opacity: 1 },         // почти белый (верх)
-            { value: 0.54, color: '#afbdeb', opacity: 1 },        // светло-голубой (центр)
-            { value: 0.0, color: '#1a2c52', opacity: 1 },         // синий (низ)
+            { value: 1.0, color: '#f2f2e2', opacity: 1 },         
+            { value: 0.54, color: '#afbdeb', opacity: 1 },        
+            { value: 0.0, color: '#1a2c52', opacity: 1 },         
           ],
         };
       default:
