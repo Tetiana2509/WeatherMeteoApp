@@ -5,6 +5,7 @@ import WeatherChart from './WeatherChart';
 import { getDataTypeIcon } from './utils';
 import { DataType, TapArea, TemperatureUnit } from './types';
 import { getChartTheme } from './chartThemes';
+import { FORMATTERS, clampValueForPlotting } from './dataFormatters';
 
 type WeatherProps = {
   height?: number;
@@ -19,23 +20,6 @@ type WeatherProps = {
   onTap?: (area: TapArea) => void;
 };
 
-const formatTemperature = (value: number): string => `${Math.round(value)}°`;
-const formatPrecipitation = (value: number): string =>
-  `${Math.round(value)} mm`;
-const formatUVIndex = (value: number): string =>
-  `${Math.round(value * 10) / 10}`;
-const formatClouds = (value: number): string => `${Math.round(value)}%`;
-const formatBrightness = (value: number): string =>
-  `${Math.round(value * 100)}%`;
-
-const FORMATTER: Record<DataType, (value: number) => string> = {
-  temperature: formatTemperature,
-  precipitation: formatPrecipitation,
-  uv_index: formatUVIndex,
-  clouds: formatClouds,
-  brightness: formatBrightness,
-};
-
 export default function Weather({
   height,
   currentTime,
@@ -48,69 +32,34 @@ export default function Weather({
   sunsetTime,
   onTap,
 }: WeatherProps) {
-  // Validate and clean the input data
-  const cleanData = React.useMemo(() => {
+
+  const formatData = FORMATTERS[dataType];
+
+  // For plotting: use data type-specific value clamping
+  const plotData = React.useMemo(() => {
     if (!data || !Array.isArray(data) || data.length === 0) {
-      // 24h default data values
-      return [
-        59, 59, 57, 57, 57, 55, 55, 57, 61, 63, 68, 72, 75, 79, 79, 79, 79, 79,
-        75, 73, 68, 64, 64, 63, 62,
-      ];
+      return [];
     }
 
-    // Clean the data: replace NaN, undefined, null with reasonable values
-    const validData = data.map((value, index) => {
-      if (typeof value !== 'number' || isNaN(value) || !isFinite(value)) {
-        // Use the previous valid value, or 20 as default temperature
-        const prevValidValue = index > 0 ? data[index - 1] : 20;
-        return typeof prevValidValue === 'number' && !isNaN(prevValidValue)
-          ? prevValidValue
-          : 20;
-      }
-      return value;
-    });
+    return data.map((v) => 
+      typeof v === 'number' ? clampValueForPlotting(v, dataType) : 0
+    );
 
-    return validData;
-  }, [data]);
-
-  // Ensure currentTime is valid
-  const safeCurrentTime =
-    typeof currentTime === 'number' && !isNaN(currentTime)
-      ? Math.max(0, Math.min(currentTime, cleanData.length - 1))
-      : 0;
-
-  const baseFormat = FORMATTER[dataType];
-
-  // For display: temperature as-is; clouds clamped to [0,100]; others clamped to >=0
-  const formatData = (value: number) => {
-    let v = value;
-    if (dataType === 'clouds') v = Math.max(0, Math.min(100, value));
-    else if (dataType !== 'temperature') v = Math.max(0, value);
-    return baseFormat(v);
-  };
-
-  // For plotting: temperature as-is; clouds clamped to [0,100]; others clamped to >=0
-  const plotData = React.useMemo(() => {
-    if (dataType === 'temperature') return cleanData;
-    if (dataType === 'clouds')
-      return cleanData.map((v) =>
-        typeof v === 'number' ? Math.max(0, Math.min(100, v)) : 0,
-      );
-    return cleanData.map((v) => (typeof v === 'number' ? Math.max(0, v) : 0));
-  }, [cleanData, dataType]);
+  }, [data, dataType]);
 
   // Per-metric chart theme (stroke + area gradient)
   const chartTheme = React.useMemo(() => {
     return getChartTheme(dataType, temperatureUnit);
   }, [dataType, temperatureUnit]);
 
+  //onsole.log(plotData.join(", "));
   return (
     <View style={[styles.weatherRow, style]}>
       <WeatherNow
         icon={getDataTypeIcon(dataType)}
-        currentTemp={cleanData[Math.floor(safeCurrentTime)]}
-        highTemp={Math.max(...cleanData)}
-        lowTemp={Math.min(...cleanData)}
+        currentTemp={plotData[Math.floor(currentTime)]}
+        highTemp={Math.max(...plotData)}
+        lowTemp={Math.min(...plotData)}
         formatData={formatData}
         showSunTimes={dataType === 'brightness'}
         sunriseTime={dataType === 'brightness' ? sunriseTime : undefined}
@@ -120,7 +69,7 @@ export default function Weather({
       <WeatherChart
         data={plotData}
         height={height}
-        currentTime={safeCurrentTime}
+        currentTime={currentTime}
         hours={hours}
         formatData={formatData}
         chartType={dataType === 'precipitation' ? 'bar' : 'line'}
