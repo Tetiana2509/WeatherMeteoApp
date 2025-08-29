@@ -42,7 +42,7 @@ export type RainBarChartProps = {
 };
 
 const X_AXIS_LABEL_HEIGHT = 20;
-const Y_AXIS_LABEL_WIDTH = 40;
+const Y_AXIS_LABEL_WIDTH = 45;
 const TOP_PADDING = 10;
 const LEFT_PADDING = 10;
 const WEB_FONT_FAMILY = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
