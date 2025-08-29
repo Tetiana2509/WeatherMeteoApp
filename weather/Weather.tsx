@@ -182,12 +182,11 @@ export default function Weather({
         };
       case 'brightness':
         return {
-          strokeColor: '#FFD54F',
-          gradientTopColor: '#FFF59D',
-          gradientBottomColor: '#0D47A1',
-          gradientTopOpacity: 0.9,
-          gradientBottomOpacity: 0.5,
-          // For brightness index values 0..1 (value-aligned like UV and Clouds)
+          strokeColor: '#afbdeb',
+          gradientTopColor: '#f2f2e2',
+          gradientBottomColor: '#1a2c52',
+          gradientTopOpacity: 1,
+          gradientBottomOpacity: 1,
           gradientValueStops: [
             { value: 1.0, color: '#f2f2e2', opacity: 1 },         
             { value: 0.54, color: '#afbdeb', opacity: 1 },        
