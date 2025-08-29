@@ -184,11 +184,9 @@ export default function Weather({
           gradientBottomOpacity: 0.5,
           // For brightness index values 0..1 (value-aligned like UV and Clouds)
           gradientValueStops: [
-            { value: 1.0, color: '#FFF59D', opacity: 0.95 }, // bright yellow
-            { value: 0.7, color: '#FFD54F', opacity: 0.85 }, // sunlight
-            { value: 0.4, color: '#26C6DA', opacity: 0.65 }, // teal twilight
-            { value: 0.2, color: '#1976D2', opacity: 0.6 }, // blue dusk
-            { value: 0.0, color: '#0D47A1', opacity: 0.55 }, // deep night
+            { value: 1.0, color: '#f2f2e2', opacity: 1 },         // почти белый (верх)
+            { value: 0.54, color: '#afbdeb', opacity: 1 },        // светло-голубой (центр)
+            { value: 0.0, color: '#1a2c52', opacity: 1 },         // синий (низ)
           ],
         };
       default:
