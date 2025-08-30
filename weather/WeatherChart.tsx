@@ -1,7 +1,7 @@
 // WeatherChart.tsx
 import React from 'react';
 import { View, StyleSheet, Text, Platform } from 'react-native';
-import Svg, { Path, Circle, Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Path, Circle, Defs, LinearGradient, Stop, Text as SvgText, Rect } from 'react-native-svg';
 
 export interface WeatherChartProps {
   /** 24 hourly data values, index 0 = 00:00, index 23 = 23:00 */
@@ -40,6 +40,24 @@ export interface WeatherChartProps {
       color: string;
       opacity?: number;
     }>;
+  };
+  /** Тип графика: line (по умолчанию) или bar */
+  chartType?: 'line' | 'bar';
+  /** bar chart-specific theme */
+  barTheme?: {
+    barColor?: string;
+    barHighlightColor?: string;
+    barRadius?: number;
+    gridLineColor?: string;
+    axisColor?: string;
+    textColor?: string;
+    gradient?: {
+      topColor: string;
+      bottomColor: string;
+      topOpacity?: number;
+      bottomOpacity?: number;
+      stops?: Array<{ offset: string | number; color: string; opacity?: number }>;
+    };
   };
 }
 
@@ -110,6 +128,8 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
   amplitudeSteps,
   fixedYDomain,
   theme,
+  chartType = 'line',
+  barTheme,
 }) => {
   const [viewWidth, setViewWidth] = React.useState<number>(350); // Default width
   const resolvedTheme = React.useMemo(() => ({
@@ -121,6 +141,23 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     gradientStops: theme?.gradientStops,
     gradientValueStops: theme?.gradientValueStops,
   }), [theme]);
+
+  // Bar chart theme
+  const resolvedBarTheme = React.useMemo(() => ({
+    barColor: barTheme?.barColor ?? '#4FC3F7',
+    barHighlightColor: barTheme?.barHighlightColor ?? '#0288D1',
+    barRadius: barTheme?.barRadius ?? 4,
+    gridLineColor: barTheme?.gridLineColor ?? GRID_LINE_COLOR,
+    axisColor: barTheme?.axisColor ?? AXIS_COLOR,
+    textColor: barTheme?.textColor ?? TEXT_COLOR,
+    gradient: {
+      topColor: barTheme?.gradient?.topColor ?? '#B3E5FC',
+      bottomColor: barTheme?.gradient?.bottomColor ?? '#0288D1',
+      topOpacity: barTheme?.gradient?.topOpacity ?? 0.9,
+      bottomOpacity: barTheme?.gradient?.bottomOpacity ?? 0.5,
+      stops: barTheme?.gradient?.stops,
+    },
+  }), [barTheme]);
 
 
   const processedData = React.useMemo(() => {
@@ -215,6 +252,7 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     };
   }, [data, viewWidth, height, currentTime, smooth, amplitudeSteps, fixedYDomain, hours]);
 
+
   if (!data?.length || !processedData) {
     return (
       <View style={[{ height }, styles.container]}>
@@ -273,11 +311,132 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
     );
   }
 
-  const { points, yLabels, chartWidth, chartHeight, currentHour } = processedData;
+
+  const { points, yLabels, chartWidth, chartHeight, currentHour, minValue, maxValue } = processedData;
   const svgWidth = viewWidth;
   const svgHeight = height;
 
-  // Create paths
+  // Bar chart rendering logic
+  if (chartType === 'bar') {
+    // Bar chart domain
+    const ySteps = 5;
+    const rawMin = 0;
+    const rawMax = Math.max(0, Math.max(...data));
+    const yMin = fixedYDomain?.min ?? rawMin;
+    const yMax = fixedYDomain?.max ?? (rawMax > 0 ? niceMax(rawMax) : 1);
+    const yRange = Math.max(1e-6, yMax - yMin);
+    const stepX = chartWidth / Math.max(1, data.length);
+    const barGapRatio = 0.25;
+    const barWidth = Math.max(2, stepX * (1 - barGapRatio));
+    const axisY = TOP_PADDING + chartHeight;
+    const gradientStops = resolvedBarTheme.gradient.stops && resolvedBarTheme.gradient.stops.length > 0
+      ? resolvedBarTheme.gradient.stops.map((s, idx) => (
+          <Stop key={idx} offset={s.offset as any} stopColor={s.color} stopOpacity={s.opacity ?? 1} />
+        ))
+      : [
+          <Stop key="0" offset="0%" stopColor={resolvedBarTheme.gradient.topColor} stopOpacity={resolvedBarTheme.gradient.topOpacity ?? 0.9} />,
+          <Stop key="1" offset="100%" stopColor={resolvedBarTheme.gradient.bottomColor} stopOpacity={resolvedBarTheme.gradient.bottomOpacity ?? 0.5} />,
+        ];
+
+    return (
+      <View style={[{ height }, styles.container]} onLayout={e => setViewWidth(e.nativeEvent.layout.width)}>
+        <Svg width={svgWidth} height={svgHeight}>
+          <Defs>
+            <LinearGradient id="barGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              {gradientStops}
+            </LinearGradient>
+          </Defs>
+
+          {/* Grid lines + Y labels */}
+          {yLabels.map((label, i) => (
+            <React.Fragment key={`grid-${i}`}>
+              <Path
+                d={`M ${LEFT_PADDING} ${label.y} L ${LEFT_PADDING + chartWidth} ${label.y}`}
+                stroke={resolvedBarTheme.gridLineColor}
+                strokeWidth={1}
+              />
+              <SvgText
+                x={LEFT_PADDING + chartWidth + 4}
+                y={label.y + 4}
+                fontSize={13}
+                {...(Platform.OS === 'web' ? { fontFamily: WEB_FONT_FAMILY } : {})}
+                fill={resolvedBarTheme.textColor}
+                textAnchor="start"
+              >
+                {formatData(label.value)}
+              </SvgText>
+            </React.Fragment>
+          ))}
+
+          {/* Bars */}
+          {data.map((v, i) => {
+            const safeV = typeof v === 'number' && isFinite(v) ? Math.max(0, v) : 0;
+            const barHeight = Math.max(0, Math.min(1, (safeV - yMin) / yRange)) * chartHeight;
+            const x = LEFT_PADDING + i * stepX + (stepX - barWidth) / 2;
+            const y = axisY - barHeight;
+            const isCurrent = i === Math.round(currentHour);
+            const fill = isCurrent ? 'url(#barGradient)' : resolvedBarTheme.barColor;
+
+            return (
+              <Rect
+                key={`bar-${i}`}
+                x={x}
+                y={y}
+                width={barWidth}
+                height={barHeight}
+                rx={resolvedBarTheme.barRadius}
+                ry={resolvedBarTheme.barRadius}
+                fill={fill}
+                stroke={isCurrent ? resolvedBarTheme.barHighlightColor : 'transparent'}
+                strokeWidth={isCurrent ? 2 : 0}
+              />
+            );
+          })}
+
+          {/* X-axis ticks and labels (every 6 hours) */}
+          {data.map((_, i) => {
+            if (i % 6 !== 0) return null;
+            const tickX = LEFT_PADDING + i * stepX + stepX / 2;
+            return (
+              <React.Fragment key={`tick-${i}`}>
+                <Path
+                  d={`M ${tickX} ${axisY} L ${tickX} ${axisY - 6}`}
+                  stroke={resolvedBarTheme.axisColor}
+                  strokeWidth={1}
+                />
+                <SvgText
+                  x={tickX + 2}
+                  y={height - 5}
+                  fontSize={13}
+                  {...(Platform.OS === 'web' ? { fontFamily: WEB_FONT_FAMILY } : {})}
+                  fill={resolvedBarTheme.textColor}
+                  textAnchor="start"
+                >
+                  {formatHour(Array.isArray(hours) && isFinite(hours[i] as number) ? (hours![i] as number) : i)}
+                </SvgText>
+              </React.Fragment>
+            );
+          })}
+
+          {/* Last tick at end */}
+          <Path
+            d={`M ${LEFT_PADDING + chartWidth} ${axisY} L ${LEFT_PADDING + chartWidth} ${axisY - 6}`}
+            stroke={resolvedBarTheme.axisColor}
+            strokeWidth={1}
+          />
+
+          {/* X-axis line */}
+          <Path
+            d={`M ${LEFT_PADDING} ${axisY} L ${LEFT_PADDING + chartWidth} ${axisY}`}
+            stroke={resolvedBarTheme.axisColor}
+            strokeWidth={1}
+          />
+        </Svg>
+      </View>
+    );
+  }
+
+  // ...existing code for line chart...
   const curvePath = createSmoothPath(points);
   const areaPath = createAreaPath(points, chartHeight, TOP_PADDING, chartWidth, LEFT_PADDING);
 
@@ -387,6 +546,17 @@ const WeatherChart: React.FC<WeatherChartProps> = ({
       </Svg>
     </View>
   );
+// "Nice" max for bar chart axis
+function niceMax(value: number) {
+  if (!isFinite(value) || value <= 0) return 1;
+  const exp = Math.floor(Math.log10(value));
+  const base = Math.pow(10, exp);
+  const n = value / base;
+  if (n <= 1) return 1 * base;
+  if (n <= 2) return 2 * base;
+  if (n <= 5) return 5 * base;
+  return 10 * base;
+}
 };
 
 export default WeatherChart;
