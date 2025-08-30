@@ -6,9 +6,9 @@ import { TapArea } from './types';
 
 interface WeatherNowProps {
   icon: React.ReactNode;
-  currentTemp: number;
-  highTemp: number;
-  lowTemp: number;
+  currentValue: number;
+  highValue: number;
+  lowValue: number;
   /** Function to format units (e.g., temperature or precipitation) */
   formatData: (value: number) => string;
   /** If true, show sunrise/sunset instead of H/L (for brightness) */
@@ -22,9 +22,9 @@ interface WeatherNowProps {
 
 const WeatherNow: React.FC<WeatherNowProps> = ({
   icon,
-  currentTemp,
-  highTemp,
-  lowTemp,
+  currentValue,
+  highValue,
+  lowValue,
   formatData,
   showSunTimes,
   sunriseTime,
@@ -55,11 +55,11 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
         accessibilityLabel="Switch data type"
       >
         <MadoText
-          style={styles.currentTemp}
+          style={styles.currentValue}
           numberOfLines={1}
           adjustsFontSizeToFit
         >
-          {formatData(currentTemp)}
+          {formatData(currentValue)}
         </MadoText>
       </TouchableOpacity>
       {showSunTimes ? (
@@ -69,8 +69,8 @@ const WeatherNow: React.FC<WeatherNowProps> = ({
         </>
       ) : (
         <>
-          <MadoText style={styles.tempRange}>H {formatData(highTemp)}</MadoText>
-          <MadoText style={styles.tempRange}>L {formatData(lowTemp)}</MadoText>
+          <MadoText style={styles.tempRange}>H {formatData(highValue)}</MadoText>
+          <MadoText style={styles.tempRange}>L {formatData(lowValue)}</MadoText>
         </>
       )}
     </View>
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   iconContainer: { marginBottom: 8 },
-  currentTemp: {
+  currentValue: {
     fontSize: 34,
     fontWeight: '600',
     color: '#fff',

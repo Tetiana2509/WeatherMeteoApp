@@ -57,9 +57,9 @@ export default function Weather({
     <View style={[styles.weatherRow, style]}>
       <WeatherNow
         icon={getDataTypeIcon(dataType)}
-        currentTemp={plotData[Math.floor(currentTime)]}
-        highTemp={Math.max(...plotData)}
-        lowTemp={Math.min(...plotData)}
+        currentValue={plotData[Math.floor(currentTime)]}
+        highValue={Math.max(...plotData)}
+        lowValue={Math.min(...plotData)}
         formatData={formatData}
         showSunTimes={dataType === 'brightness'}
         sunriseTime={dataType === 'brightness' ? sunriseTime : undefined}
