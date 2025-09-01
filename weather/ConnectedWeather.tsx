@@ -12,6 +12,7 @@ import Weather from './Weather';
 import { computeDaylightBrightnessIndexFromArrays } from './services/brightnessIndex';
 import { useCache } from './hooks/useCache';
 import { DataType, TemperatureUnit, Coords, coordsEqual, TapArea } from './types';
+import { getCurrentHourIndex, getSunriseSunsetTimes } from './timeUtils';
 
 type Props = {
   dataType: DataType;
@@ -237,46 +238,10 @@ export const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
     }
 
     // Choose sunrise/sunset for the same local day as the filtered hourly series
-    let sunriseTime: string | null = null;
-    let sunsetTime: string | null = null;
-    const seriesDate = weatherData.time?.[0]?.slice(0, 10) || null;
-    if (seriesDate) {
-      sunriseTime = (weatherData.sunrise || []).find((s) => s && s.startsWith(seriesDate))
-        || (weatherData.sunrise?.[0] ?? null);
-      sunsetTime = (weatherData.sunset || []).find((s) => s && s.startsWith(seriesDate))
-        || (weatherData.sunset?.[0] ?? null);
-    } else {
-      sunriseTime = weatherData.sunrise?.[0] ?? null;
-      sunsetTime = weatherData.sunset?.[0] ?? null;
-    }
+    const { sunriseTime, sunsetTime } = getSunriseSunsetTimes(weatherData);
 
     // Compute current hour index in the location's local time based on API timezone
-    let currentHourIndex = 0;
-    if (weatherData?.time && weatherData.time.length > 0) {
-      const tzOffsetSeconds = weatherData.utc_offset_seconds || 0;
-      const shiftedISO = new Date(Date.now() + tzOffsetSeconds * 1000)
-        .toISOString();
-      const locHour = parseInt(shiftedISO.slice(11, 13), 10);
-      const hours = weatherData.time.map((t) => {
-        const hh = parseInt(t.slice(11, 13), 10);
-        return Number.isFinite(hh) ? hh : 0;
-      });
-      let idx = hours.findIndex((h) => h === locHour);
-      if (idx < 0) {
-        // Fallback: pick the nearest hour
-        let best = 0;
-        let bestDist = Infinity;
-        hours.forEach((h, i) => {
-          const d = Math.abs(h - locHour);
-          if (d < bestDist) {
-            bestDist = d;
-            best = i;
-          }
-        });
-        idx = best;
-      }
-      currentHourIndex = idx;
-    }
+    const currentHourIndex = getCurrentHourIndex(weatherData);
     
     currentTime ??= new Date().getHours();
 
