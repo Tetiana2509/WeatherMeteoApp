@@ -9,10 +9,10 @@ import React, {
 import { Text, ActivityIndicator, Alert, ViewStyle } from 'react-native';
 import { getHourlyWeather, HourlyWeather } from './services/meteoService';
 import Weather from './Weather';
-import { computeDaylightBrightnessIndexFromArrays } from './services/brightnessIndex';
 import { useCache } from './hooks/useCache';
 import { DataType, TemperatureUnit, Coords, coordsEqual, TapArea } from './types';
-import { getCurrentHourIndex, getSunriseSunsetTimes } from './timeUtils';
+import { getCurrentHourIndex, getSunriseSunsetTimes, getTodayIndices, createFilteredWeatherData } from './timeUtils';
+import { selectSeries, convertSeries } from './dataUtils';
 
 type Props = {
   dataType: DataType;
@@ -36,51 +36,15 @@ export const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
     // Initialize cache hook with 5-minute TTL
     const weatherCache = useCache<HourlyWeather>({ ttlMinutes: 5 });
 
-    // select data to use
-    const selectedData =
-      weatherData == null
-        ? []
-        : dataType === 'precipitation'
-          ? weatherData.precipitation
-          : dataType === 'uv_index'
-            ? weatherData.uv_index
-            : dataType === 'clouds'
-              ? weatherData.cloudcover
-              : dataType === 'brightness'
-                ? (() => {
-                  // Compute brightness index 0..1 using solar altitude and conditions
-                  try {
-                    const times = weatherData!.time;
-                    const lat = lastCoordsRef.current?.lat ?? 0;
-                    const lon = lastCoordsRef.current?.lon ?? 0;
-                    return computeDaylightBrightnessIndexFromArrays(times, {
-                      latitude: lat,
-                      longitude: lon,
-                      timezoneOffsetMinutes:
-                        new Date().getTimezoneOffset() * -1,
-                    });
-                  } catch {
-                    return [] as number[];
-                  }
-                })()
-                : weatherData.temperature_2m;
+    // Select and convert data using utility functions
+    const selectedData = selectSeries(
+      weatherData,
+      dataType,
+      lastCoordsRef.current?.lat ?? 0,
+      lastCoordsRef.current?.lon ?? 0
+    );
 
-    // verify data
-    let convertedData = selectedData;
-    if (selectedData.find((n) => typeof n !== 'number' || isNaN(n))) {
-      console.error('Invalid data set:', selectedData);
-      convertedData = [];
-    } else if (dataType === 'temperature' && temperatureUnit === 'fahrenheit') {
-      // Temperature conversion functions
-      const celsiusToFahrenheit = (celsius: number): number =>
-        (celsius * 9) / 5 + 32;
-      convertedData = selectedData.map(celsiusToFahrenheit);
-    } else if (dataType === 'brightness') {
-      // ensure 0..1 and numeric
-      convertedData = selectedData.map((v) =>
-        typeof v === 'number' && isFinite(v) ? clamp01(v) : 0,
-      );
-    }
+    const convertedData = convertSeries(selectedData, dataType, temperatureUnit);
 
     const fetchWeather = useCallback(async (
       lat: number,
@@ -105,22 +69,8 @@ export const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
           throw new Error('Invalid weather data received from API');
         }
 
-        // Determine "today" in the location's timezone using API-provided offset
-        const tzOffsetSeconds = fullData.utc_offset_seconds || 0;
-        const nowShifted = new Date(Date.now() + tzOffsetSeconds * 1000);
-        const today = nowShifted.toISOString().split('T')[0];
-
-        // Build indices for the hours that are on today's local date
-        let filteredIndices = fullData.time
-          .map((time, index) => ({ time, index }))
-          .filter(({ time }) => time && time.startsWith(today))
-          .map(({ index }) => index);
-
-        // Fallback: if no data for today, use the first 24 hours
-        if (filteredIndices.length === 0 && fullData.time.length >= 24) {
-          filteredIndices = Array.from({ length: 24 }, (_, i) => i);
-          console.log('Fallback to first 24 hours');
-        }
+        // Get indices for today's hours (with fallback to first 24 hours)
+        const filteredIndices = getTodayIndices(fullData);
 
         // If still empty, show an error
         if (filteredIndices.length === 0) {
@@ -132,45 +82,8 @@ export const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
           return;
         }
 
-        // Helper function to safely get numeric value or fallback
-        const safeGetNumber = (
-          array: number[],
-          index: number,
-          fallback: number = 0,
-        ): number => {
-          const value = array?.[index];
-          return typeof value === 'number' && !isNaN(value) ? value : fallback;
-        };
-
-        // Create filtered data with validation
-        const filteredData: HourlyWeather = {
-          time: filteredIndices.map((i) => fullData.time[i] || ''),
-          temperature_2m: filteredIndices.map((i) =>
-            safeGetNumber(fullData.temperature_2m, i, 15),
-          ),
-          apparent_temperature: filteredIndices.map((i) =>
-            safeGetNumber(fullData.apparent_temperature, i, 15),
-          ),
-          relative_humidity_2m: filteredIndices.map((i) =>
-            safeGetNumber(fullData.relative_humidity_2m, i, 50),
-          ),
-          precipitation: filteredIndices.map((i) =>
-            safeGetNumber(fullData.precipitation, i, 0),
-          ),
-          weathercode: filteredIndices.map((i) =>
-            safeGetNumber(fullData.weathercode, i, 0),
-          ),
-          uv_index: filteredIndices.map((i) =>
-            safeGetNumber(fullData.uv_index, i, 0),
-          ),
-          cloudcover: filteredIndices.map((i) =>
-            safeGetNumber(fullData.cloudcover, i, 0),
-          ),
-          sunrise: fullData.sunrise || [],
-          sunset: fullData.sunset || [],
-          timezone: fullData.timezone,
-          utc_offset_seconds: fullData.utc_offset_seconds,
-        };
+        // Create filtered data with validation using utility function
+        const filteredData = createFilteredWeatherData(fullData, filteredIndices);
 
         // Final validation - ensure we have valid temperature data
         const hasValidTemperatures = filteredData.temperature_2m.some(
@@ -275,7 +188,3 @@ export const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
     );
   },
 );
-
-function clamp01(v: number) {
-  return Math.max(0, Math.min(1, v));
-}
