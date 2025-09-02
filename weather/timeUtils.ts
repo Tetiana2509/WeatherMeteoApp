@@ -138,6 +138,9 @@ export function createFilteredWeatherData(
     cloudcover: filteredIndices.map((i) =>
       safeGetNumber(fullData.cloudcover, i, 0),
     ),
+    brightness: filteredIndices.map((i) =>
+      safeGetNumber(fullData.brightness, i, 0),
+    ),
     sunrise: fullData.sunrise || [],
     sunset: fullData.sunset || [],
     timezone: fullData.timezone,

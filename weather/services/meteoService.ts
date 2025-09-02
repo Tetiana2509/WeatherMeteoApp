@@ -7,6 +7,7 @@ export interface HourlyWeather {
   weathercode: number[];
   uv_index: number[];
   cloudcover: number[];
+  brightness: number[];
   sunrise: string[];
   sunset: string[];
   timezone?: string;
@@ -30,6 +31,7 @@ export const getHourlyWeather = async (lat: number, lon: number): Promise<Hourly
     weathercode: data.hourly.weathercode,
     uv_index: data.hourly.uv_index,
     cloudcover: data.hourly.cloudcover,
+    brightness: [], // Will be computed in useWeatherData hook
     sunrise: data.daily.sunrise,
     sunset: data.daily.sunset,
   timezone: data.timezone,

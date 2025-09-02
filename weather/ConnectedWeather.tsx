@@ -1,17 +1,12 @@
 import React, {
-  useEffect,
-  useState,
   useImperativeHandle,
   forwardRef,
-  useCallback,
-  useRef,
 } from 'react';
-import { Text, ActivityIndicator, Alert, ViewStyle } from 'react-native';
-import { getHourlyWeather, HourlyWeather } from './services/meteoService';
+import { Text, ActivityIndicator, ViewStyle } from 'react-native';
 import Weather from './Weather';
-import { useCache } from './hooks/useCache';
-import { DataType, TemperatureUnit, Coords, coordsEqual, TapArea } from './types';
-import { getCurrentHourIndex, getSunriseSunsetTimes, getTodayIndices, createFilteredWeatherData } from './timeUtils';
+import { useWeatherData } from './hooks/useWeatherData';
+import { DataType, TemperatureUnit, Coords, TapArea } from './types';
+import { getCurrentHourIndex, getSunriseSunsetTimes } from './timeUtils';
 import { selectSeries, convertSeries } from './dataUtils';
 
 type Props = {
@@ -29,114 +24,22 @@ export type ConnectedWeatherRef = {
 
 export const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
   ({ dataType, temperatureUnit, coords, onTap, currentTime, style }, ref) => {
-    const [weatherData, setWeatherData] = useState<HourlyWeather | null>(null);
-    const [loading, setLoading] = useState(false);
-    const lastCoordsRef = useRef<Coords | null>(null);
-
-    // Initialize cache hook with 5-minute TTL
-    const weatherCache = useCache<HourlyWeather>({ ttlMinutes: 5 });
+    // Use the new weather data hook
+    const { weatherData, loading, update } = useWeatherData(coords);
 
     // Select and convert data using utility functions
     const selectedData = selectSeries(
       weatherData,
       dataType,
-      lastCoordsRef.current?.lat ?? 0,
-      lastCoordsRef.current?.lon ?? 0
+      coords?.lat ?? 0,
+      coords?.lon ?? 0
     );
 
     const convertedData = convertSeries(selectedData, dataType, temperatureUnit);
 
-    const fetchWeather = useCallback(async (
-      lat: number,
-      lon: number,
-      forceRefresh: boolean = false,
-    ) => {
-      setLoading(true);
-      try {
-        const fullData = await weatherCache.executeWithCache(
-          { lat, lon },
-          () => getHourlyWeather(lat, lon),
-          forceRefresh,
-        );
-
-        // Validate API data
-        if (
-          !fullData ||
-          !fullData.time ||
-          !Array.isArray(fullData.time) ||
-          fullData.time.length === 0
-        ) {
-          throw new Error('Invalid weather data received from API');
-        }
-
-        // Get indices for today's hours (with fallback to first 24 hours)
-        const filteredIndices = getTodayIndices(fullData);
-
-        // If still empty, show an error
-        if (filteredIndices.length === 0) {
-          Alert.alert(
-            'No data',
-            'No weather data available for this location.',
-          );
-          setWeatherData(null);
-          return;
-        }
-
-        // Create filtered data with validation using utility function
-        const filteredData = createFilteredWeatherData(fullData, filteredIndices);
-
-        // Final validation - ensure we have valid temperature data
-        const hasValidTemperatures = filteredData.temperature_2m.some(
-          (temp) =>
-            typeof temp === 'number' &&
-            !isNaN(temp) &&
-            temp > -100 &&
-            temp < 100,
-        );
-
-        if (!hasValidTemperatures) {
-          throw new Error('No valid temperature data available');
-        }
-
-        setWeatherData(filteredData);
-        // console.log("Filtered temperatures:", filteredData.temperature_2m);
-      } catch (error) {
-        console.error('Weather fetch error:', error);
-        if (
-          error instanceof Error &&
-          error.message === 'Invalid weather data received from API'
-        ) {
-          // Suppress generic alert; show inline "No data" state instead
-          setWeatherData(null);
-        } else {
-          Alert.alert(
-            'Error',
-            error instanceof Error ? error.message : 'Failed to get weather',
-          );
-        }
-      } finally {
-        setLoading(false);
-      }
-    }, [weatherCache]);
-
-    const handleUpdate = useCallback(async () => {
-      if (lastCoordsRef.current) {
-        await fetchWeather(lastCoordsRef.current.lat, lastCoordsRef.current.lon, true);
-      }
-    }, [fetchWeather]);
-
     useImperativeHandle(ref, () => ({
-      update: handleUpdate,
+      update,
     }));
-
-    // Effect to handle external coordinate changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => {
-      if (!coordsEqual(coords, lastCoordsRef.current)) {
-        lastCoordsRef.current = coords ?? null;
-        handleUpdate();
-      }
-    }, [coords, handleUpdate]);
 
     if (loading) {
       return <ActivityIndicator size="large" style={{ marginTop: 20 }} />;

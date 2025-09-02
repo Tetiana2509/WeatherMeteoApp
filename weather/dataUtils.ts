@@ -1,5 +1,4 @@
 import { HourlyWeather } from './services/meteoService';
-import { computeDaylightBrightnessIndexFromArrays } from './services/brightnessIndex';
 import { DataType, TemperatureUnit } from './types';
 
 /**
@@ -23,17 +22,7 @@ export function selectSeries(
     case 'clouds':
       return weatherData.cloudcover;
     case 'brightness':
-      try {
-        // Compute brightness index 0..1 using solar altitude and conditions
-        const times = weatherData.time;
-        return computeDaylightBrightnessIndexFromArrays(times, {
-          latitude: lat,
-          longitude: lon,
-          timezoneOffsetMinutes: new Date().getTimezoneOffset() * -1,
-        });
-      } catch {
-        return [] as number[];
-      }
+      return weatherData.brightness;
     case 'temperature':
     default:
       return weatherData.temperature_2m;
