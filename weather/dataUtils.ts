@@ -11,6 +11,7 @@ export function selectSeries(
   lon: number
 ): number[] {
   if (weatherData == null) {
+    console.log('selectSeries: weatherData is null for dataType:', dataType);
     return [];
   }
 
@@ -52,7 +53,7 @@ export function convertSeries(
   } else if (dataType === 'brightness') {
     // Ensure 0..1 and numeric
     return series.map((v) =>
-      typeof v === 'number' && isFinite(v) ? clamp01(v) : 0,
+      typeof v === 'number' && isFinite(v) ? clamp01(v) : 0.5,
     );
   }
 

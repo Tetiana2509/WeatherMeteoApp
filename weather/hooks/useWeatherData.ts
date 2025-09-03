@@ -51,10 +51,18 @@ export function useWeatherData(coords?: Coords | null): UseWeatherDataResult {
           timezoneOffsetMinutes: (fullData.utc_offset_seconds || 0) / 60,
           timesAreUTC: false, // Open-Meteo times are already in local timezone
         });
-        fullData.brightness = brightnessData;
+        
+        // Ensure brightness data has the same length as time data
+        if (Array.isArray(brightnessData) && brightnessData.length === fullData.time.length) {
+          fullData.brightness = brightnessData;
+        } else {
+          console.warn('Brightness data length mismatch, using fallback');
+          fullData.brightness = fullData.time.map(() => 0.5); // Default to mid-level brightness
+        }
       } catch (error) {
         console.warn('Failed to compute brightness data:', error);
-        fullData.brightness = fullData.time.map(() => 0);
+        // Ensure we create an array with the same length as time data
+        fullData.brightness = fullData.time.map(() => 0.5); // Default to mid-level brightness
       }
 
       // Get indices for today's hours (with fallback to first 24 hours)

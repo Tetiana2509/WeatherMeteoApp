@@ -27,16 +27,6 @@ export const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
     // Use the new weather data hook
     const { weatherData, loading, update } = useWeatherData(coords);
 
-    // Select and convert data using utility functions
-    const selectedData = selectSeries(
-      weatherData,
-      dataType,
-      coords?.lat ?? 0,
-      coords?.lon ?? 0
-    );
-
-    const convertedData = convertSeries(selectedData, dataType, temperatureUnit);
-
     useImperativeHandle(ref, () => ({
       update,
     }));
@@ -52,6 +42,18 @@ export const ConnectedWeather = forwardRef<ConnectedWeatherRef, Props>(
     ) {
       return <Text style={{ color: 'red', textAlign: 'center' }}>No data</Text>;
     }
+
+    // Select and convert data using utility functions - only after validating weatherData
+    const selectedData = selectSeries(
+      weatherData,
+      dataType,
+      coords?.lat ?? 0,
+      coords?.lon ?? 0
+    );
+
+    console.log(`ConnectedWeather: dataType=${dataType}, hasWeatherData=${!!weatherData}, selectedDataLength=${selectedData.length}`);
+
+    const convertedData = convertSeries(selectedData, dataType, temperatureUnit);
 
     // Choose sunrise/sunset for the same local day as the filtered hourly series
     const { sunriseTime, sunsetTime } = getSunriseSunsetTimes(weatherData);
