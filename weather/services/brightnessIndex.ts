@@ -104,17 +104,19 @@ function solarAltitudeDeg(localInstant: Date, latDeg: number, lonDeg: number, tz
 /* ------------------------- Brightness model components ------------------------ */
 
 function daylightFactorFromAltitude(altDeg: number): number {
-  // Сумерки: астрономические (-18..-12), навигационные (-12..-6), гражданские (-6..0)
   if (altDeg <= -18) return 0;
-  if (altDeg <= -12) return lerp(0.01, 0.06, (altDeg + 18) / 6);
-  if (altDeg <= -6)  return lerp(0.06, 0.2,  (altDeg + 12) / 6);
-  if (altDeg <= 0)   return lerp(0.2,  0.55, (altDeg + 6)  / 6);
+  if (altDeg <= -12) return lerp(0.004, 0.015, (altDeg + 18) / 6);
+  if (altDeg <= -6)  return lerp(0.015, 0.035, (altDeg + 12) / 6);
+  if (altDeg <= 0)   return lerp(0.035, 0.14,  (altDeg + 6)  / 6);
 
-  // Дневная часть: высоты до ~60° нормализуем и слегка «смягчаем» синусом
-  const x = clamp01(altDeg / 60);
-  const ease = Math.pow(Math.sin((Math.PI / 2) * x), 0.9);
-  return clamp01(0.55 + 0.45 * ease);
+  if (altDeg <= 10)  return lerp(0.14, 0.35, (altDeg - 0)  / 10);
+  if (altDeg <= 30)  return lerp(0.35, 0.78, (altDeg - 10) / 20);
+
+  const x = clamp01((altDeg - 30) / 30);
+  const ease = Math.sin((Math.PI / 2) * x);
+  return clamp01(0.78 + 0.22 * ease);
 }
+
 
 /* ----------------------------------- Utils ----------------------------------- */
 
