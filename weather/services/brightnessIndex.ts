@@ -1,19 +1,19 @@
 /**
  * Daylight Brightness Index computation
  * -------------------------------------
- * A normalized (0..1) index that represents perceived outdoor brightness per hour,
- * accounting for solar altitude (including twilight).
+ * Нормированный (0..1) индекс "яркости дня" по часам
+ * на основе высоты Солнца (включая сумерки).
  */
 
 export type HourlyInputs = {
-  time: Date | string | number; // Date, ISO string, or epoch ms
+  time: Date | string | number; // Date, ISO-строка, или epoch ms
 };
 
 export type BrightnessOptions = {
-  latitude: number;                  // degrees (-90..90)
-  longitude: number;                 // degrees (-180..180)
-  timezoneOffsetMinutes?: number;    // e.g. +120 for UTC+2
-  timesAreUTC?: boolean;             // if true, times are UTC and must be shifted
+  latitude: number;                  // градусы (-90..90)
+  longitude: number;                 // градусы (-180..180)
+  timezoneOffsetMinutes?: number;    // например +120 для UTC+2 (учитывай DST)
+  timesAreUTC?: boolean;             // если true — входные times в UTC
 };
 
 export function computeDaylightBrightnessIndex(
@@ -21,18 +21,22 @@ export function computeDaylightBrightnessIndex(
   opts: BrightnessOptions,
 ): number[] {
   const tzOffset = opts.timezoneOffsetMinutes ?? 0;
+
   return hours.map((h) => {
+    // Если timesAreUTC=false, пытаемся интерпретировать строковые даты как локальные с указанным смещением
     const preferLon = !opts.timesAreUTC;
     const t = coerceDateWithTimezone(h.time, tzOffset, opts.longitude, preferLon);
-    const local = opts.timesAreUTC ? new Date(t.getTime() + tzOffset * 60_000) : t;
-    const alt = solarAltitudeDeg(local, opts.latitude, opts.longitude, tzOffset);
 
+    // Если входные времена в UTC — сдвигаем к «локальному» представлению
+    const local = opts.timesAreUTC ? new Date(t.getTime() + tzOffset * 60_000) : t;
+
+    const alt = solarAltitudeDeg(local, opts.latitude, opts.longitude, tzOffset);
     const base = daylightFactorFromAltitude(alt);
     return clamp01(base);
   });
 }
 
-// --- Solar position helpers (NOAA approximation) ---
+/* ---------------- Solar position helpers (NOAA approximation) ---------------- */
 
 function getLocalHMSfromUTC(d: Date, tzOffsetMin: number) {
   const mins = d.getUTCHours() * 60 + d.getUTCMinutes() + tzOffsetMin;
@@ -44,6 +48,7 @@ function getLocalHMSfromUTC(d: Date, tzOffsetMin: number) {
 }
 
 function dayOfYearLocal(d: Date, tzOffsetMin: number): number {
+  // Преобразуем к локальному (по tzOffsetMin) дню года
   const utc = Date.UTC(
     d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(),
     d.getUTCHours(), d.getUTCMinutes() + tzOffsetMin, d.getUTCSeconds()
@@ -59,41 +64,59 @@ function solarAltitudeDeg(localInstant: Date, latDeg: number, lonDeg: number, tz
   const hms = getLocalHMSfromUTC(localInstant, tzOffsetMin);
   const hour = hms.hours + hms.minutes / 60 + hms.seconds / 3600;
 
+  // Годовой угол (gamma), радианы
   const gamma = (2 * Math.PI / 365) * (day - 1 + (hour - 12) / 24);
 
+  // Уравнение времени (минуты)
   const eqtime = 229.18 * (
-    0.000075 + 0.001868 * Math.cos(gamma) - 0.032077 * Math.sin(gamma)
-    - 0.014615 * Math.cos(2 * gamma) - 0.040849 * Math.sin(2 * gamma)
+    0.000075
+    + 0.001868 * Math.cos(gamma)
+    - 0.032077 * Math.sin(gamma)
+    - 0.014615 * Math.cos(2 * gamma)
+    - 0.040849 * Math.sin(2 * gamma)
   );
-  const decl = 0.006918 - 0.399912 * Math.cos(gamma) + 0.070257 * Math.sin(gamma)
-    - 0.006758 * Math.cos(2 * gamma) + 0.000907 * Math.sin(gamma)
-    - 0.002697 * Math.cos(3 * gamma) + 0.00148 * Math.sin(3 * gamma);
 
+  // СКЛОНЕНИЕ СОЛНЦА (радианы) — исправленная формула (Spencer/NOAA)
+  const decl =
+    0.006918
+    - 0.399912 * Math.cos(gamma)
+    + 0.070257 * Math.sin(gamma)
+    - 0.006758 * Math.cos(2 * gamma)
+    + 0.000907 * Math.sin(2 * gamma)  // ← фикс: тут именно sin(2*gamma)
+    - 0.002697 * Math.cos(3 * gamma)
+    + 0.00148  * Math.sin(3 * gamma);
+
+  // Истинное солнечное время (мин)
   const timeOffset = eqtime + 4 * lonDeg - tzOffsetMin;
   let tst = (hour * 60 + timeOffset) % 1440;
   if (tst < 0) tst += 1440;
 
+  // Часовой угол (радианы)
   const ha = toRad(tst / 4 - 180);
+
+  // Зенитный угол -> высота (градусы)
   const lat = toRad(latDeg);
   const cosZenith = Math.sin(lat) * Math.sin(decl) + Math.cos(lat) * Math.cos(decl) * Math.cos(ha);
   const zenith = Math.acos(clamp(-1, cosZenith, 1));
   return toDeg(Math.PI / 2 - zenith);
 }
 
-// --- Brightness model components ---
+/* ------------------------- Brightness model components ------------------------ */
 
 function daylightFactorFromAltitude(altDeg: number): number {
+  // Сумерки: астрономические (-18..-12), навигационные (-12..-6), гражданские (-6..0)
   if (altDeg <= -18) return 0;
   if (altDeg <= -12) return lerp(0.01, 0.06, (altDeg + 18) / 6);
-  if (altDeg <= -6) return lerp(0.06, 0.2, (altDeg + 12) / 6);
-  if (altDeg <= 0) return lerp(0.2, 0.55, (altDeg + 6) / 6);
+  if (altDeg <= -6)  return lerp(0.06, 0.2,  (altDeg + 12) / 6);
+  if (altDeg <= 0)   return lerp(0.2,  0.55, (altDeg + 6)  / 6);
 
+  // Дневная часть: высоты до ~60° нормализуем и слегка «смягчаем» синусом
   const x = clamp01(altDeg / 60);
   const ease = Math.pow(Math.sin((Math.PI / 2) * x), 0.9);
   return clamp01(0.55 + 0.45 * ease);
 }
 
-// --- Utils ---
+/* ----------------------------------- Utils ----------------------------------- */
 
 function coerceDate(t: Date | string | number): Date {
   if (t instanceof Date) return t;
@@ -102,6 +125,7 @@ function coerceDate(t: Date | string | number): Date {
   return d;
 }
 
+// Грубая оценка смещения по долготе (шаг 30 мин). Лучше всегда явно передавать timezoneOffsetMinutes.
 function estimateOffsetFromLongitudeMinutes(lonDeg: number): number {
   const mins = Math.round((lonDeg * 4) / 30) * 30;
   return mins;
@@ -113,11 +137,14 @@ function coerceDateWithTimezone(
   lonDeg: number,
   preferLongitudeOffset: boolean = false
 ): Date {
+  // Если уже Date или epoch — возвращаем как есть
   if (t instanceof Date || typeof t === 'number') return coerceDate(t);
 
+  // Если строка уже с таймзоной — доверяем ей
   const hasTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(t);
   if (hasTz) return new Date(t);
 
+  // Иначе дописываем смещение (из opts или по долготе, если так решили)
   let offsetMin: number;
   if (preferLongitudeOffset) {
     offsetMin = Number.isFinite(tzOffsetMin) ? tzOffsetMin : estimateOffsetFromLongitudeMinutes(lonDeg || 0);
@@ -144,6 +171,8 @@ function clamp01(v: number): number { return clamp(0, v, 1); }
 function lerp(a: number, b: number, t: number): number { return a + (b - a) * clamp01(t); }
 function toRad(deg: number): number { return (deg * Math.PI) / 180; }
 function toDeg(rad: number): number { return (rad * 180) / Math.PI; }
+
+/* --------------------- Convenience: arrays-in / arrays-out -------------------- */
 
 export function computeDaylightBrightnessIndexFromArrays(
   times: Array<Date | string | number>,
